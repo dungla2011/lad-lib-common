@@ -25,6 +25,11 @@ define("DEF_DATA_TYPE_IS_FA_FONT_ICON", 22);
 define("DEF_DATA_TYPE_HTML_SELECT_OPTION", 23);
 define("DEF_DATA_TYPE_BOOL_NUMBER", 24);
 
+function loi($string)
+{
+    throw new \Exception("$string");
+}
+
 /**
  * This base class will be inherited in Model class, to CURD data
  * Using: Object maps properties with Fields of a row in a table of DB
@@ -47,7 +52,13 @@ abstract class BaseDb implements IBaseDb
 
     abstract function getTableName();
 
-    abstract function test111();
+//    abstract function test111();
+
+    function getNameDescFromField($field){
+        return $field;
+    }
+
+
 
     //https://stackoverflow.com/questions/8889521/php-force-a-class-to-declare-a-property
     //Dùng để kiểm tra class con, bắt buộc phải khai báo biến _metaData

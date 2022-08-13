@@ -3,35 +3,96 @@
 namespace LadLib\Common\Database;
 
 use Base\ClassRoute;
+use Base\ModelBase;
 use Base\modelBaseMongo;
 use Base\ModelLogUser;
+use Base\modelTreeMongo;
 
-abstract class MongoDbBase extends BaseDb
-{
+abstract class MongoDbBase extends BaseDb {
+
+    use TraitBase;
+
     var $_id;
 
+    //Static, so can Set TableName dynamically
+    public static $_tableName;
+    //Static, so can Set DbName dynamically
+    public static $_dbName;
+
     function __construct(){
-//        echo "<br> OK: ".get_called_class();
+    }
+
+    function getId(){
+        return $this->_id;
     }
 
     /**
      * Child class can define other dbname if necessary
      * @return string
      */
-    function getDbName()
-    {
+    function getDbName() {
         return env("DB_DATABASE");
     }
 
-    abstract function getTableName();
+//    abstract function getTableName();
+
+    function getTableName(){
+        $class = get_called_class();
+        if (isset($class::$_tableName))
+            return $class::$_tableName;
+        return null;
+    }
+
+    /**
+     * Set dynamically, overwrite default db
+     * @param $tblName
+     */
+    static function setDbName_static($dbName){
+        $class = get_called_class();
+        $class::$_dbName = $dbName;
+    }
+
+    /**
+     * Set dynamically, overwrite default table
+     * @param $tblName
+     */
+    static function setTableName_static($tblName){
+        $class = get_called_class();
+        $class::$_tableName = $tblName;
+    }
+
+    /**
+     * Set dynamically, overwrite default table
+     * @param $tblName
+     */
+    function setTableName($tblName){
+        $class = get_called_class();
+        $class::$_tableName = $tblName;
+    }
 
     function getOneId($id)
     {
         return $this->getOneWhere(['_id' => $id]);
     }
 
-    function getCtrMongo(): \MongoDB\Collection
-    {
+    /**
+     *  * OPT sample:
+     * $opt = ['sort' => ['_id' => 1]];
+     * $opt = ['sort' => ['_id' => -1]];
+     * @param array $v
+     * @param array $o
+     * @return $this
+     * https://docs.google.com/document/d/1ejzJwYw8XPJYqvQGN2qE9qhZlWIJVhth7EOslb-GIUE/edit#heading=h.aq9cd2jtuaf0
+     * 'name'=> new \MongoDB\BSON\Regex("^iphone", 'i')
+     */
+    public static function getOneWhereStatic($v = [], $o = []){
+        $cls = get_called_class();
+        $obj = new $cls;
+        if($obj instanceof modelBaseMongo);
+        return $obj->getOneWhere($v, $o);
+    }
+
+    function getCtrMongo(): \MongoDB\Collection {
         $db = $this->getDbName();
         $tbl = $this->getTableName();
         $this->checkValidTableAndDbName();
@@ -96,12 +157,52 @@ abstract class MongoDbBase extends BaseDb
         return $id = MongoDbBase::getIdToInsertNew($db, $tbl);;
     }
 
+    /*
+     * Cho cả đối tượng này cũng như 1 mảng nếu có:
+     */
+    function setNumberFields(&$ArrayInput = null)
+    {
+
+        //2022-06-08: có lỗi hàm này, khi parent_list là number array, mà là mongo thì bị sai, vì mảng ko thể convert là 1 số
+//        return;
+        foreach ($this as $field => $value) {
+
+            if(!isset($this->$field))
+                continue;
+
+            //Mongo:
+            if(isset($this->_id))
+                $this->_id = intval($this->_id);
+
+            if ($this->isNumberField($field) || $this->isEnumNumberField($field)) {
+                //Not set  = 0 because sometime need null
+//                if (!$value)
+//                    $this->$field = 0;
+//                elseif($value === null)
+//                    $this->$field = null;
+//                else
+                if($value && is_numeric($value))
+                    $this->$field = floatval($value);
+                if($value && is_array($value)){
+                    foreach ($value AS $k1=>$v1){
+                        if(is_numeric($v1))
+                            $value[$k1] = floatval($v1);
+                    }
+                }
+            }
+        }
+    }
+
     function insert($convertToArray = 1){
         $clt = $this->getCtrMongo();
         if (!$this->_id)
             $this->_id = $this->getIdIncrementalToInsert();
         if (isset($this->_id) && $this->_id && is_numeric($this->_id))
             $this->_id = intval($this->_id);
+
+        $this->setNumberFields();
+
+
         if ($convertToArray) {
             $mm = $this->toArray();
             $insertOneResult = $clt->insertOne($mm);
@@ -170,9 +271,32 @@ abstract class MongoDbBase extends BaseDb
         return self::getMax($obj->getDbName(), $obj->getTableName(), $field);
     }
 
-    function update()
-    {
+    function setDbName($_dbName){
 
+        $class = get_called_class();
+        $class::$_dbName = $_dbName;
+
+    }
+
+    function update($is_arr = 1, $logChange = 1, $arrNull = [])
+    {
+        if(!$this->_id)
+            loi("Not id to update? ($this->_id)");
+        $this->_id = intval($this->_id);
+        $clt = $this->getCtrMongo();
+        $this->setNumberFields();
+        foreach ($this AS $key=>$value){
+            if(in_array($key, $arrNull))
+                $this->$key = null;
+
+            //Mảng thì phải xly lại để lưu vào BSONArray
+            //(vì có lúc là dạng BSONDocument thay vì BSONArray)
+            if(is_array($value)){
+                $this->$key = array_values($value);
+            }
+        }
+        $ret1 =  $clt->updateOne(['_id'=>intval($this->_id)],['$set'=>$this]);
+        return $ret1;
     }
 
     function delete()

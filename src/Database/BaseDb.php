@@ -8,12 +8,12 @@ define("DEF_DATA_TYPE_TEXT_STRING", 3);
 define("DEF_DATA_TYPE_TEXT_AREA", 4);
 define("DEF_DATA_TYPE_RICH_TEXT", 5);
 define("DEF_DATA_TYPE_OBJECT", 6);
-define("DEF_DATA_TYPE_ENUM_STRING", 7);
+define("DEF_DATA_TYPE_ARRAY_STRING", 7);
 define("DEF_DATA_TYPE_PASSWORD", 8);
 define("DEF_DATA_TYPE_MONGO_BSON_ARRAY", 9);
 define("DEF_DATA_TYPE_IS_ERROR_STATUS", 10);
-define("DEF_DATA_TYPE_ENUM_JOIN_TABLE", 11); //Lay ten table o join_function,
-define("DEF_DATA_TYPE_ENUM_NUMBER", 12);
+define("DEF_DATA_TYPE_ARRAY_JOIN_TABLE", 11); //Lay ten table o join_function,
+define("DEF_DATA_TYPE_ARRAY_NUMBER", 12);
 define("DEF_DATA_TYPE_IS_LINK", 15);
 define("DEF_DATA_TYPE_IS_COLOR_PICKER", 16);
 define("DEF_DATA_TYPE_IS_SUCCESS_STATUS", 17); //Ngược với error
@@ -54,9 +54,7 @@ abstract class BaseDb implements IBaseDb
 
 //    abstract function test111();
 
-    function getNameDescFromField($field){
-        return $field;
-    }
+
 
 
 

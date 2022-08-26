@@ -2,6 +2,8 @@
 
 namespace LadLib\Common\Database;
 
+use Illuminate\Support\Str;
+
 class DbHelper {
     /**
      * PDO version
@@ -33,6 +35,11 @@ class DbHelper {
      * Example get laravel PDO : $con = \Illuminate\Support\Facades\DB::getPdo();
      */
     static function getTableColumns($con, $tableName){
+
+        if(!$con){
+            throw new \Exception("Not connection DB? May be need set DB and Table for $tableName ");
+        }
+
         $mm = self::getTableColumnAndDataType($con, $tableName);
         $ret  = array_keys($mm);
         return $ret;
@@ -54,5 +61,14 @@ class DbHelper {
         return $mm;
     }
 
+    /**
+     * @param $tableName
+     * @return MetaOfTableInDb
+     */
+    public static function getMetaObjFromTableName($tableName){
+        $cls = "\\App\\Models\\" . Str::studly(Str::singular($tableName))."_Meta";
+        $obj = new $cls;
+        return $obj;
+    }
 }
 

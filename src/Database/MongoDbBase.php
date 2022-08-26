@@ -10,7 +10,7 @@ use Base\modelTreeMongo;
 
 abstract class MongoDbBase extends BaseDb {
 
-    use TraitBase;
+//    use TraitBase;
 
     var $_id;
 
@@ -19,8 +19,6 @@ abstract class MongoDbBase extends BaseDb {
     //Static, so can Set DbName dynamically
     public static $_dbName;
 
-    function __construct(){
-    }
 
     function getId(){
         return $this->_id;
@@ -174,7 +172,7 @@ abstract class MongoDbBase extends BaseDb {
             if(isset($this->_id))
                 $this->_id = intval($this->_id);
 
-            if ($this->isNumberField($field) || $this->isEnumNumberField($field)) {
+            if ($this->isNumberField($field) || $this->isArrayNumberField($field)) {
                 //Not set  = 0 because sometime need null
 //                if (!$value)
 //                    $this->$field = 0;

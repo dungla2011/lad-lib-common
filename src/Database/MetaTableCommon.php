@@ -2,10 +2,13 @@
 
 namespace LadLib\Common\Database;
 
-class MetaDataTable extends MongoDbBase
-{
-    public static $_tableName = '';
 
+/**
+ * Lớp của riêng đối tượng metadata
+ */
+class MetaTableCommon extends MongoDbBase {
+
+    public static $_tableName = '';
     //var $tableName;
 
     var $_id;
@@ -35,9 +38,12 @@ class MetaDataTable extends MongoDbBase
 
     var $insertable;
 
+    var $api_url; //là api để CURD - query dữ liệu all, không phải cho từng trường, mà cho cả bảng
+
     var $join_func; //Hàm để join lấy data MAP, vd: userid cần lấy email
 
     var $join_api; //Hàm để join từ API, lấy data MAP, vd: userid cần lấy email
+    var $join_api_field; //Trường mà api sẽ search, để lấy ra ID
 
     var $admin_url;
     //Hàm để join update/insert giá trị field sang bảng khác
@@ -45,6 +51,7 @@ class MetaDataTable extends MongoDbBase
     //mỗi IP vào id của VPS (mỗi ip có 1 trường VPS ID)
     var $func_foreign_key_insert_update;
 
+    //Chuyển về dataType, bỏ trường này
 //    var $is_status;
     var $is_select;
 //    var $is_textarea;
@@ -68,30 +75,13 @@ class MetaDataTable extends MongoDbBase
     var $is_hiden_input; //Có lúc input sẽ cần hidden, vd khi không cho user update, mà update qua 1 joinfunction có js
 
 
-    /**
-     * Lấy ra toàn bộ metainfo của 1 bảng, sort theo thứ tự order_field
-     * @param $table
-     * @param $con
-     * @return MetaDataTable[]
-     */
-    static function getMetaDataOfTable($table, $con){
-        $mmFieldObj = \LadLib\Common\Database\DbHelper::getTableColumns($con, $table);
-        $tableNameMetaInfo = $table."_meta_info";
-        $objMeta = new MetaDataTable();
-        $objMeta->setTableName($tableNameMetaInfo);
-        $mm = $objMeta->getOrInitMetaTableIfNotHave($mmFieldObj);
-        //Sort order field, desc:
-        usort($mm,function($first,$second){
-            return $first->order_field < $second->order_field;
-        });
-        return $mm;
-    }
+
 
     /*
      * 2021-01-05
      *  Cái này của riêng Metadata
      */
-    public function getMetaDataApi($gid = null)
+    public function getMetaDataApi()
     {
         $ret = [
             ['field' => 'isNumber', 'is_status' => 1],
@@ -111,70 +101,62 @@ class MetaDataTable extends MongoDbBase
         ];
         return $ret;
     }
-
-    /**
-     * Lấy all meta info của một class, hoặc tạo, insert bảng trong db nếu chưa có
-     * @param $mAllFieldObj
-     * @return MetaDataTable[]
-     */
-    function getOrInitMetaTableIfNotHave($mAllFieldObj){
-
-        $mmAllDb = $this->getArrayWhere();
-        if (!$mmAllDb) {
-            //Init table in DB
-            foreach ($mAllFieldObj AS $fieldObj) {
-                $objInsert = new MetaDataTable();
-                if (!MetaDataTable::getOneWhereStatic(['field' => $fieldObj])) {
-                    $objInsert->field = $fieldObj;
-                    if($objInsert->insert())
-                    if (!$objInsert->sname || $objInsert->sname != 's'.$objInsert->_id)
-                    {
-                        //echo "<br/>\n EmptySname => ";
-                        $objInsert->sname = "s" . $objInsert->_id;
-                        $objInsert->update();
-                    }
-                }
-            }
-            $mmAllDb = $this->getArrayWhere();
-        }
-
-        return $mmAllDb;
-    }
-
-
-    public function callJoinFunction($funcName, $key = null, $ext = null, $ext1 = null, $ext2 = null, $ext3 = null)
+    function getDataType($field)
     {
-        if (is_callable($funcName)) {
-            return call_user_func($funcName, $key, $ext);
+        if (!$mMeta = $this->getMetaDataApi())
+            return 0;
+        foreach ($mMeta as $mField) {
+            if (isset($mField['field']) && $mField['field'] == $field && isset($mField['dataType'])) {
+                return $mField['dataType'];
+            }
+        }
+        return null;
+    }
+
+    function isArrayNumberField($field) {
+        if ($this->getDataType($field) == DEF_DATA_TYPE_ARRAY_NUMBER)
+            return 1;
+        return 0;
+    }
+
+    function isNumberField($field)
+    {
+        $mFieldNumber = ['_id', 'id', 'parent'];
+
+        if(in_array($field, $mFieldNumber))
+            return 1;
+
+        if ($this->getDataType($field) == DEF_DATA_TYPE_NUMBER)
+            return 1;
+        if ($this->getDataType($field) == DEF_DATA_TYPE_BOOL_NUMBER)
+            return 1;
+
+        //Neu la status thi cung la number
+        if ($this->isStatusField($field))
+            return 1;
+
+        $class = get_called_class();
+        if (!$mMeta = $this->getMetaDataApi())
+            return 0;
+
+        foreach ($mMeta as $mField) {
+            if (isset($mField['field']) && $mField['field'] == $field) {
+                if (isset($mField['isNumber']))
+                    if ($mField['isNumber'])
+                        return 1;
+                break;
+            }
         }
 
-        // Mặc định là của Meta table
-        return [
-            DEF_DATA_TYPE_STATUS => '[Status]',
-            DEF_DATA_TYPE_NUMBER => '[Number]',
-            DEF_DATA_TYPE_BOOL_NUMBER => '[Bool Number]',
-            DEF_DATA_TYPE_PASSWORD => '[Password]',
-            DEF_DATA_TYPE_TEXT_STRING => '[String]',
-            DEF_DATA_TYPE_TEXT_AREA => '[TextArea]',
-            DEF_DATA_TYPE_RICH_TEXT => '[RichText]',
-            DEF_DATA_TYPE_OBJECT => '[Object]',
-            DEF_DATA_TYPE_ENUM_NUMBER => '[Enum Number]',
-            DEF_DATA_TYPE_ENUM_STRING => '[Enum String]',
-            DEF_DATA_TYPE_ENUM_JOIN_TABLE => '[EnumJoinTable]',
-            DEF_DATA_TYPE_MONGO_BSON_ARRAY => '[MongoArray]',
-            DEF_DATA_TYPE_IS_ERROR_STATUS => '[Error-Status]',
-            DEF_DATA_TYPE_IS_SUCCESS_STATUS => '[Success-Status]',
-            DEF_DATA_TYPE_IS_LINK => '[IsLink]',
-            DEF_DATA_TYPE_IS_COLOR_PICKER => '[IsColorPicker]',
-            DEF_DATA_TYPE_IS_IMAGE_BROWSE => '[SelectImage]',
-            DEF_DATA_TYPE_IS_DATE => '[Date String]',
-            DEF_DATA_TYPE_IS_DATE_TIME => '[Date Time String]',
-            DEF_DATA_TYPE_IS_TIME => '[Time HH:MM:SS]',
-            DEF_DATA_TYPE_IS_FA_FONT_ICON => '[FA_FONT_ICON]',
-            DEF_DATA_TYPE_HTML_SELECT_OPTION => '[HtmlSelectOption]',
-
-        ];
+        return 0;
     }
+
+//    public function callJoinFunction($funcName, $key = null, $ext = null, $ext1 = null, $ext2 = null, $ext3 = null)
+//    {
+//        if (is_callable($funcName)) {
+//            return call_user_func($funcName, $key, $ext);
+//        }
+//    }
 
     public function isValidate($option = null, $param = null)
     {
@@ -195,11 +177,39 @@ class MetaDataTable extends MongoDbBase
 
     }
 
-    function isSelectField($field)
-    {
-        if ($field == 'dataType')
-            return 1;
+    function isSelectField($field) {
+
+        if ($field == 'dataType') {
+            // Mặc định là của Meta table
+            $ret = [
+                DEF_DATA_TYPE_STATUS => '[Status]',
+                DEF_DATA_TYPE_NUMBER => '[Number]',
+                DEF_DATA_TYPE_BOOL_NUMBER => '[Bool Number]',
+                DEF_DATA_TYPE_PASSWORD => '[Password]',
+                DEF_DATA_TYPE_TEXT_STRING => '[String]',
+                DEF_DATA_TYPE_TEXT_AREA => '[TextArea]',
+                DEF_DATA_TYPE_RICH_TEXT => '[RichText]',
+                DEF_DATA_TYPE_OBJECT => '[Object]',
+                DEF_DATA_TYPE_ARRAY_NUMBER => '[ArrayNumber]',
+                DEF_DATA_TYPE_ARRAY_STRING => '[ArrayString]',
+                DEF_DATA_TYPE_ARRAY_JOIN_TABLE => '[EnumJoinTable]',
+                DEF_DATA_TYPE_MONGO_BSON_ARRAY => '[MongoArray]',
+                DEF_DATA_TYPE_IS_ERROR_STATUS => '[Error-Status]',
+                DEF_DATA_TYPE_IS_SUCCESS_STATUS => '[Success-Status]',
+                DEF_DATA_TYPE_IS_LINK => '[IsLink]',
+                DEF_DATA_TYPE_IS_COLOR_PICKER => '[IsColorPicker]',
+                DEF_DATA_TYPE_IS_IMAGE_BROWSE => '[SelectImage]',
+                DEF_DATA_TYPE_IS_DATE => '[DateString]',
+                DEF_DATA_TYPE_IS_DATE_TIME => '[DateTimeString]',
+                DEF_DATA_TYPE_IS_TIME => '[Time HH:MM:SS]',
+                DEF_DATA_TYPE_IS_FA_FONT_ICON => '[FA_FONT_ICON]',
+                DEF_DATA_TYPE_HTML_SELECT_OPTION => '[HtmlSelectOption]',
+
+            ];
+            return $ret;
+        }
         return 0;
+
     }
 
     function getNameDescFromField($field)
@@ -260,7 +270,7 @@ class MetaDataTable extends MongoDbBase
         }
 
         if ($field == 'limit_user_edit') {
-            return "Limit edit";
+            return "Limit other edit";
         }
         if ($field == 'limit_dev_edit') {
             return "Dev Edit only";
@@ -275,7 +285,7 @@ class MetaDataTable extends MongoDbBase
         }
 
         if ($field == 'is_select') {
-            return "Is Select";
+            return "Select Join Func";
         }
 
         if ($field == 'admin_url') {
@@ -286,7 +296,11 @@ class MetaDataTable extends MongoDbBase
             return "Join Func";
         }
         if ($field == 'join_api') {
-            return "Join Api";
+            return "Join Api Search";
+        }
+
+        if ($field == 'join_api_field') {
+            return "Api Field Search";
         }
 
         if ($field == 'is_hiden_input') {
@@ -306,16 +320,13 @@ class MetaDataTable extends MongoDbBase
         if ($field == '_id') {
             return "ID";
         }
-
-
-
-        return parent::getNameDescFromField($field); // TODO: Change the autogenerated stub
+        return $field;
     }
 
-    public function isEditableField($field, $gid)
+    public function isEditableField($field, $gid = 0)
     {
         //Với metatable, thì các trường sau ko được edit
-        if($field == '_id' || $field == 'id')
+        if($field == '_id' || $field == 'id' || $field == 'join_func')
             return 0;
 
         if ($field == 'field')
@@ -325,8 +336,12 @@ class MetaDataTable extends MongoDbBase
         return 1;
     }
 
-    public function isShowIndexField($field, $gid)
+    public function isShowIndexField($field, $gid = null)
     {
+        $mFieldHide = ['api_url', 'meta_all_set_api'];
+        if(in_array($field, $mFieldHide)){
+            return 0;
+        }
         return 1;
     }
 
@@ -356,5 +371,80 @@ class MetaDataTable extends MongoDbBase
     public function getCssClass($field)
     {
         return 'not_define_class';
+    }
+
+
+    /** Một số tên trường có type mặc định
+     * @param $field
+     */
+    function setDefaultMetaTypeField($field){
+
+        //////////////////////////////////////////////////////////
+        //Tạo sẵn default:
+        $arr1 = ['id', 'name', 'status'];
+        if (in_array($field, $arr1)) {
+            $this->show_in_index = "1,2";
+        }
+
+        if($field == 'name'){
+            //Mặc định name cho lên top
+            $this->order_field = 10;
+        }
+
+        $arr1 = ['parent', 'id', 'name', 'status' , 'createdAt'];
+        if (in_array($field, $arr1)) {
+            $this->searchable = "1,2";
+            $this->sortable = "1,2";
+        }
+
+        $arr1 = ['name', 'status', 'summary', 'summary0', 'content'];
+        if (in_array($field, $arr1)) {
+            $this->editable = "1,2";
+            $this->editable_get_one = "1,2";
+            $this->show_get_one = "1,2";
+        }
+
+        $arr1 = ['id', 'userid', 'user_id', 'status', 'orders','price', 'price_org', 'parent', 'product_id', 'category_id' ];
+        if (in_array($field, $arr1))
+            $this->dataType = DEF_DATA_TYPE_NUMBER;
+
+        $arr1 = ['content'];
+        if (in_array($field, $arr1))
+            $this->dataType = DEF_DATA_TYPE_RICH_TEXT;
+
+        //ảnh sẽ là các id, mỗi id sẽ ở bên bảng ảnh riêng
+        $arr1 = ['image_list','tags_list'];
+        if (in_array($field, $arr1))
+            $this->dataType = DEF_DATA_TYPE_ARRAY_NUMBER;
+
+        $arr1 = ['name', 'name_en'];
+        if (in_array($field, $arr1))
+            $this->dataType = DEF_DATA_TYPE_TEXT_STRING;
+
+        $arr1 = ['summary', 'summary0', 'summary1', 'summary2',
+            'summary_en'];
+        if (in_array($field, $arr1))
+            $this->dataType = DEF_DATA_TYPE_TEXT_AREA;
+
+        $arr1 = ['status'];
+        if (in_array($field, $arr1))
+            $this->dataType = DEF_DATA_TYPE_STATUS;
+
+        //Bỏ qua siteid với các bảng meta:
+        //unset($this->siteid);
+        //unset($this->_id);
+    }
+
+    /**
+     * Một số field không cho phép user sửa trong db meta, sẽ fix ở code của class Meta
+     * Như các class tương ứng: Users_Meta, Demo_Meta
+     * @param $fieldMeta
+     * @return bool
+     */
+    public static function isHardCodeMetaField($fieldMeta){
+        $hardCode =  ['join_func','join_api', 'join_api_field', 'dataType', 'is_select', 'api_url'];
+        if(in_array($fieldMeta, $hardCode))
+            return true;
+        return false;
     }
 }

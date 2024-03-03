@@ -35,17 +35,16 @@ class DbHelper {
      * Example get laravel PDO : $con = \Illuminate\Support\Facades\DB::getPdo();
      */
     static function getTableColumns($con, $tableName){
-
         if(!$con){
             throw new \Exception("Not connection DB? May be need set DB and Table for $tableName ");
         }
-
         $mm = self::getTableColumnAndDataType($con, $tableName);
         $ret  = array_keys($mm);
         return $ret;
     }
 
     /**
+     * Get all Table in current DB
      * @param $con
      * @return array
      * Example get laravel PDO : $con = \Illuminate\Support\Facades\DB::getPdo();
@@ -62,13 +61,17 @@ class DbHelper {
     }
 
     /**
+     * Get MetaObj of Table
+     * All Models is placed in folder App/Models, and each Model has a MetaModel, be add '_Meta'
+     * For ex: App/Models/User.php, has a Meta class in : App/Models/User_Meta.php
      * @param $tableName
      * @return MetaOfTableInDb
      */
-    public static function getMetaObjFromTableName($tableName){
-        $cls = "\\App\\Models\\" . Str::studly(Str::singular($tableName))."_Meta";
-        $obj = new $cls;
-        return $obj;
-    }
+//    public static function getMetaObjFromTableName($tableName){
+//        $cls = "\\App\\Models\\" . Str::studly(Str::singular($tableName))."_Meta";
+//        $obj = new $cls;
+//        return $obj;
+//    }
+
 }
 

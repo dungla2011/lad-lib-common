@@ -12,7 +12,5 @@ interface IBaseDb
 {
     function getDbName();
     function getTableName();
-
-//    function test111();
 }
 

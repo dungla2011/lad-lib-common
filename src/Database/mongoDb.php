@@ -55,7 +55,6 @@ class mongoDb extends clsBaseGlx {
     }
 
     function queryDataWithParams($mFilter = [], $objParam = null, $option = []){
-
         $objMeta = $this->getMetaObj();
         $mMeta = $objMeta->getMetaDataApi();
         if (isset($mMeta['user_id'])){
@@ -64,8 +63,17 @@ class mongoDb extends clsBaseGlx {
                 $mFilter['user_id'] = $objParam->need_set_uid;
         }
 
+        try{
+
         $clt = $this->getCtrlDb();
-        $cursor = $clt->find($mFilter, $option);
+        if(!$clt)
+            return null;
+
+            $cursor = $clt->find($mFilter, $option);
+        }
+        catch (\Exception $exception){
+            return null;
+        }
         $cc = 0;
         $cls = $this::class;
 
@@ -87,7 +95,15 @@ class mongoDb extends clsBaseGlx {
         $cls = static::class ;
         $obj = new $cls;
         $clt = $obj->getCtrlDb();
-        $document = $clt->findOne(['_id'=>intval($id)]);
+
+        try{
+//            $cursor = $clt->find($mFilter, $option);
+            $document = $clt->findOne(['_id'=>intval($id)]);
+        }
+        catch (\Exception $exception){
+            return null;
+        }
+
         if (!$document)
             return null;
         foreach ($document as $key => $value) {
@@ -117,7 +133,16 @@ class mongoDb extends clsBaseGlx {
             $idf = intval($idf);
 
             $mFilter['_id'] = $idf;
-            $document = $clt->findOne($mFilter);
+
+
+            try{
+//            $cursor = $clt->find($mFilter, $option);
+                $document = $clt->findOne($mFilter);
+            }
+            catch (\Exception $exception){
+                return null;
+            }
+
             if (!$document)
                 loi("Not found $idf or not belong your acc!");
             $clt->deleteOne(['_id'=>$idf]);
@@ -126,9 +151,18 @@ class mongoDb extends clsBaseGlx {
     }
 
     function update_multi($param, clsParamRequestEx $objParam){
+
+
         $cls = static::class ;
         $obj = new $cls;
-        $clt = $this->getCtrlDb();
+        $clt = null;
+        try{
+            $clt = $this->getCtrlDb();
+        }
+        catch (\Exception $exception){
+            return null;
+        }
+
         $mFilter = [];
 
         $objMeta = $this->getMetaObj();
@@ -180,18 +214,41 @@ class mongoDb extends clsBaseGlx {
                 }
 
                 $document = $clt->findOne($mFilter);
+                try{
+//            $cursor = $clt->find($mFilter, $option);
+                    $document = $clt->findOne($mFilter);
+                }
+                catch (\Exception $exception){
+                    return null;
+                }
+
                 if (!$document)
                     continue;
                 if($clt->updateOne(['_id' => $fid], ['$set' => $m1]))
                     $nDone++;
             }
         }
+
         return rtJsonApiDone(['insert_list'=>$idInsertDone] , "update done: $nDone record!");
     }
 
     function getAll($mFilter = [], $option = []){
-        $clt = $this->getCtrlDb();
-        $cursor = $clt->find($mFilter, $option);
+        $clt = null;
+        try{
+            $clt = $this->getCtrlDb();
+        }
+        catch (\Exception $exception){
+            return null;
+        }
+
+        try{
+//            $cursor = $clt->find($mFilter, $option);
+            $cursor = $clt->find($mFilter, $option);
+        }
+        catch (\Exception $exception){
+            return null;
+        }
+
         $cc = 0;
         foreach ($cursor as $document) {
             echo "<br/>\n -----------";
@@ -221,7 +278,13 @@ class mongoDb extends clsBaseGlx {
 
         $mFilter['_id'] = $id;
 
-        $clt = $this->getCtrlDb();
+        $clt = null;
+        try{
+            $clt = $this->getCtrlDb();
+        }
+        catch (\Exception $exception){
+            return null;
+        }
 
 
         if($id < 0){
@@ -243,7 +306,15 @@ class mongoDb extends clsBaseGlx {
             return 1;
         }
 
-        $document = $clt->findOne($mFilter);
+
+        try{
+//            $cursor = $clt->find($mFilter, $option);
+            $document = $clt->findOne($mFilter);
+        }
+        catch (\Exception $exception){
+            return null;
+        }
+
         if (!$document)
             return null;
 
@@ -264,7 +335,13 @@ class mongoDb extends clsBaseGlx {
         if(!$mm)
             $mm = $this->toArray();
 
-        $clt = $this->getCtrlDb();
+        $clt = null;
+        try{
+            $clt = $this->getCtrlDb();
+        }
+        catch (\Exception $exception){
+            return null;
+        }
         if (!isset($mm['id'])) {
             $id = $this->getIdToInsertNew_();
             //modelBaseMongo::sampleInsertDoc();

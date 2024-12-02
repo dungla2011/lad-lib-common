@@ -131,10 +131,9 @@ class UrlHelper1
 
     static public function getDomainHostName()
     {
-        if(isCli()){//
+        if(!isWindow1() && isCli()){//
 //            return gethostname();
         }
-
         if (isset($_SERVER['HTTP_HOST']))
             return explode(":", $_SERVER['HTTP_HOST'])[0];
         if (isset($_SERVER['SERVER_NAME'])) {
@@ -219,9 +218,9 @@ class UrlHelper1
         return self::setUrlParam(null, $key, $value);
     }
 
-    static public function setUrlParamArray($url, $array){
+    static public function setUrlParamArray($url = null, $array = null){
         if ($url === null)
-            return self::getUrlRequestUri();
+            $url = self::getUrlRequestUri();
 
         $url0 = $url;
         foreach ($array AS $k => $v){
@@ -245,11 +244,15 @@ class UrlHelper1
         }
 
         //2022.06.22 add, cho các trường hợp zalo paste link > ra &lt
+        if($url1)
         $url1 = htmlspecialchars_decode($url1);
 
         //echo "<br/>\nurl1 = $url1";
-        parse_str($url1, $query1);
+        $query1 = null;
+        if($url1)
+            parse_str($url1, $query1);
         $query = [];
+        if($query1)
         foreach ($query1 as $k => $v) {
             if($endWidth){
                 if (substr($k,  -1* strlen($endWidth)) != $endWidth)
@@ -268,7 +271,7 @@ class UrlHelper1
     // $url = null: current url
     static public function setUrlParam($url, $key, $value)
     {
-        if ($url === null)
+        if (!$url)
             $url = self::getUrlRequestUri();
 
         $url0 = $url;
@@ -278,12 +281,20 @@ class UrlHelper1
             $url1 = explode("?", $url)[1];
         }
 
+
+
+
         //2022.06.22 add, cho các trường hợp zalo paste link > ra &lt
-        $url1 = htmlspecialchars_decode($url1);
+        if($url1)
+            $url1 = htmlspecialchars_decode($url1);
 
         //echo "<br/>\nurl1 = $url1";
-        parse_str($url1, $query1);
+        $query1 = null;
+        if($url1)
+            parse_str($url1, $query1);
         $query = [];
+
+        if($query1)
         foreach ($query1 as $k => $v) {
             //Cả trường hợp = 0 cũng được set:
             if ($v !== false)

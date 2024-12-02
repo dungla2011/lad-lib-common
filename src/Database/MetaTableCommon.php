@@ -82,6 +82,7 @@ class MetaTableCommon extends SqlDbBase
     var $css_class;
     var $css_cell_class;
     var $css;
+    var $width_col;
 
     //Hàm join của model trên trường hiện tại, có thể là 1 trường fake
     var $join_func_model;
@@ -94,6 +95,7 @@ class MetaTableCommon extends SqlDbBase
 
     //So sanh readOnly với $is_hiden_input: indden thì vẫn cho post lên, cón readonly thì disable ko cho post lên
     var $is_hiden_input; //Có lúc input sẽ cần hidden, vd khi không cho user update, mà update qua 1 joinfunction có js
+
 
 
     function getDbName()
@@ -161,6 +163,11 @@ class MetaTableCommon extends SqlDbBase
         return 0;
     }
 
+    //Nếu trường khác ID mã hóa
+    function isRandNumberField($field)
+    {
+        return null;
+    }
 
     function isNumberField($field)
     {
@@ -614,7 +621,7 @@ class MetaTableCommon extends SqlDbBase
             $this->show_get_one = "1,2";
         }
 
-        $arr1 = ['name', 'status', 'summary', 'user_id', 'content', 'created_at'];
+        $arr1 = ['name', 'status', 'summary', 'user_id', 'content'];
         if (in_array($field, $arr1)) {
             $this->editable_get_one = "1,2";
         }
@@ -628,6 +635,9 @@ class MetaTableCommon extends SqlDbBase
         $arr1 = ['id', 'userid', 'user_id', 'status', 'orders','price', 'price_org', 'parent_id', 'product_id', 'category_id' ];
         if (in_array($field, $arr1))
             $this->dataType = DEF_DATA_TYPE_NUMBER;
+
+        if ($field == 'parent_id')
+            $this->dataType = DEF_DATA_TYPE_TREE_SELECT;
 
         $arr1 = ['content'];
         if (in_array($field, $arr1))
@@ -643,7 +653,7 @@ class MetaTableCommon extends SqlDbBase
             $this->dataType = DEF_DATA_TYPE_TEXT_STRING;
 
         $arr1 = ['summary', 'summary0', 'summary1', 'summary2',
-            'summary_en'];
+            'summary_en', 'logs'];
         if (in_array($field, $arr1))
             $this->dataType = DEF_DATA_TYPE_TEXT_AREA;
 

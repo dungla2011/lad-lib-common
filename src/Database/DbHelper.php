@@ -2,6 +2,7 @@
 
 namespace LadLib\Common\Database;
 
+use App\Models\ModelGlxBase;
 use Illuminate\Support\Str;
 
 class DbHelper {
@@ -72,6 +73,16 @@ class DbHelper {
 //        $obj = new $cls;
 //        return $obj;
 //    }
+
+    /**
+     * @param $tableName
+     * @return ModelGlxBase
+     */
+    public static function getObjModelFromTableName($tableName){
+        $cls = "\\App\\Models\\" . Str::studly(Str::singular($tableName))."";
+        $obj = new $cls;
+        return $obj;
+    }
 
 }
 

@@ -654,6 +654,7 @@ Array
         if($n >= count($mm))
             return $str;
         $m1 = [];
+        if($mm)
         for($i = 0; $i <= $n; $i++){
             $m1[] = $mm[$i];
         }

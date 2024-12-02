@@ -1,5 +1,4 @@
 <?php
-
 namespace LadLib\Common;
 
 use App\Components\cstring;

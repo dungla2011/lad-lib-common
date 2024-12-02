@@ -13,22 +13,24 @@ define("DEF_DATA_TYPE_PASSWORD", 8);
 define("DEF_DATA_TYPE_MONGO_BSON_ARRAY", 9);
 define("DEF_DATA_TYPE_IS_ERROR_STATUS", 10);
 define("DEF_DATA_TYPE_ARRAY_JOIN_TABLE", 11); //Lay ten table o join_function,
-define("DEF_DATA_TYPE_ARRAY_NUMBER", 12);
+define("DEF_DATA_TYPE_ARRAY_NUMBER", 12); //Mảng các số, ví dụ mảng các id...
 define("DEF_DATA_TYPE_IS_LINK", 15);
 define("DEF_DATA_TYPE_IS_COLOR_PICKER", 16);
 define("DEF_DATA_TYPE_IS_SUCCESS_STATUS", 17); //Ngược với error
 define("DEF_DATA_TYPE_IS_DATE", 18);
 define("DEF_DATA_TYPE_IS_DATE_TIME", 19);
 define("DEF_DATA_TYPE_IS_TIME", 20);
-define("DEF_DATA_TYPE_IS_IMAGE_BROWSE", 21);
+define("DEF_DATA_TYPE_IS_ONE_IMAGE_BROWSE", 21); // Cho phép browse 1 ảnh gắn ID vào đây
 define("DEF_DATA_TYPE_IS_FA_FONT_ICON", 22);
 define("DEF_DATA_TYPE_HTML_SELECT_OPTION", 23);
 define("DEF_DATA_TYPE_BOOL_NUMBER", 24);
-
-function loi($string)
-{
-    throw new \Exception("$string");
-}
+//Select tree, chọn kiểu Dialog select tree (folder...), radio box
+define("DEF_DATA_TYPE_TREE_SELECT", 25);
+//Kiểu select check box
+define("DEF_DATA_TYPE_TREE_MULTI_SELECT", 26);
+define("DEF_DATA_TYPE_IS_MULTI_IMAGE_BROWSE", 27); // Cho phép browse nhiều ảnh gắn ID vào đây cách nhau dấu ,
+//Kiểu này thì trường sẽ là full html, ko phải input nữa
+define("DEF_DATA_TYPE_FULL_HTML", 28);
 
 /**
  * This base class will be inherited in Model class, to CURD data
@@ -51,12 +53,6 @@ abstract class BaseDb implements IBaseDb
     abstract function getDbName();
 
     abstract function getTableName();
-
-//    abstract function test111();
-
-
-
-
 
     //https://stackoverflow.com/questions/8889521/php-force-a-class-to-declare-a-property
     //Dùng để kiểm tra class con, bắt buộc phải khai báo biến _metaData
@@ -188,6 +184,15 @@ abstract class BaseDb implements IBaseDb
         $this->clearField();
         if (is_object($obj) || is_array($obj))
             foreach ($obj as $key => $value) {
+
+                if (!property_exists($this, $key))
+                    continue;
+
+                $prop = new \ReflectionProperty(get_class($this), $key);
+                if ($prop->isStatic()) {
+                    continue;
+                }
+
                 if (property_exists($this, $key))
                     $this->$key = $value;
             }
@@ -389,10 +394,13 @@ abstract class BaseDb implements IBaseDb
     {
         foreach (get_class_vars(get_class($this)) as $k => $v) {
 
-//            $prop = new \ReflectionProperty(get_class($this), $k);
-//            if ($prop->isStatic()) {
-//                continue;
-//            }
+            if (!property_exists($this, $k))
+                continue;
+
+            $prop = new \ReflectionProperty(get_class($this), $k);
+            if ($prop->isStatic()) {
+                continue;
+            }
             if ($k != '_id' && substr($k, 0, 1) == '_')
                 continue;
 

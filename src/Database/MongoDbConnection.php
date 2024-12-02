@@ -12,7 +12,6 @@ class MongoDbConnection {
     public static $lastFilter;
     public static $lastOpt;
 
-
     public static function connectDb($host = DB_HOST, $user = null, $pass = null){
         if(!MongoDbConnection::$conn)
             MongoDbConnection::$conn = new \MongoDB\Client('mongodb://'.$host.'/');

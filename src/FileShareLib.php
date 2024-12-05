@@ -7,6 +7,10 @@
 
 namespace LadLib\Common;
 
+class FileShareLib {
+    // Class implementation
+}
+
 function getFileFullPath($fid = 0, $location = '') {
     $dirRang = $fid - $fid % 1000;
     $dirRang.="-" . ($dirRang + 1000);

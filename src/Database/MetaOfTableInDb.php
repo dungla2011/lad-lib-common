@@ -123,7 +123,21 @@ class MetaOfTableInDb extends MetaTableCommon
         return 0;
     }
 
-    public function getJoinExtra(\Illuminate\Database\Eloquent\Builder &$x = null, $getSelect = 0)
+    /**
+     * Hàm bổ xung SQL, để lấy ra các trường mở rộng, hoặc các trường trong bảng join
+     * @param \Illuminate\Database\Eloquent\Builder|null $x
+     * @param $getSelect
+     * @return void
+     */
+    public function getSqlOrJoinExtraIndex(\Illuminate\Database\Eloquent\Builder &$x = null, $getSelect = 0)
+    {
+
+    }
+
+    /**
+     * Hàm bổ xung SQL, để lấy ra các trường mở rộng, hoặc các trường trong bảng join Edit
+     */
+    public function getSqlOrJoinExtraEdit(\Illuminate\Database\Eloquent\Builder &$x = null, $params = null)
     {
 
     }
@@ -2157,7 +2171,7 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
 
         ?>
         <form id="form_data">
-            <div class="divTable2 divContainer" data-code-pos="ppp1665356335831"
+            <div class="divTable2 divContainer index_data" data-code-pos="ppp1665356335831"
                  id="div_container"
                  data-api-url="<?php echo $dataApiUrl ?>"
                  data-api-url-update-multi="<?php echo $dataApiUrl ?>/update-multi"

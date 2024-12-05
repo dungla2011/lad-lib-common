@@ -7,6 +7,10 @@
 
 namespace LadLib\Common;
 
+defined('_MB') || define('_MB', 1048576);
+defined('_GB') || define('_GB', 1073741824);
+defined('_NSECOND_DAY') || define('_NSECOND_DAY', 86400);
+
 class FileShareLib
 {
     // Class implementation
@@ -60,18 +64,74 @@ class FileShareLib
         file_put_contents($fileMark, $size);
     }
 
+    static function HTS($string){
+
+        $str = '';
+        for($i=0; $i<strlen($string); $i+=2){
+            $str .= chr(hexdec(substr($string,$i,2)));
+        }
+        return $str;
+
+        
+    }
+    static function loi($string){
+        throw new \Exception($string);
+    }
+
+
+    static  function output($filename, $string, $createFolder = 0)
+    {
+        if ($createFolder && ! file_exists(dirname($filename))) {
+            mkdir(dirname($filename));
+        }
+    
+        $file = @fopen($filename, 'a');
+        if (! $file) {
+            return;
+        }
+        @fwrite($file, $string."\r\n");
+        @fclose($file);
+    }
+    
+    static  function outputW($filename, $string, $createFolder = 0)
+    {
+        if (! $filename) {
+            return;
+        }
+        if ($createFolder && ! file_exists(dirname($filename))) {
+            mkdir(dirname($filename));
+        }
+        $file = fopen($filename, 'w');
+        if (! $file) {
+            return;
+        }
+        fwrite($file, $string);
+        fclose($file);
+    }
+    
+    static function outputT($filename, $strlog, $createFolder = 0)
+    {
+    
+        if ($createFolder && ! file_exists(dirname($filename))) {
+            mkdir(dirname($filename));
+        }
+    
+        $datetime = date('Y-m-d H:i:s');
+        self::output($filename, $datetime.'#'.$strlog);
+    }
+
     public static function getLocationInToken($tokenEnc)
     {
-        $tk = HTS($tokenEnc);
+        $tk = self::HTS($tokenEnc);
         if (strstr($tk, "|") === false) {
             http_response_code(500);
-            loi("Not valid tokenEnc!");
+            self::loi("Not valid tokenEnc!");
         }
         $m1 = explode("|", $tk);
         $location = $m1[1];
         if (strlen($location) != 1) {
             http_response_code(500);
-            loi("Not valid token location!");
+            self::loi("Not valid token location!");
         }
         return "sd$location";
     }
@@ -91,10 +151,14 @@ class FileShareLib
 
     public static function outputLogErrorReportSizeDone($fid, $uid, $tokenEnc, $sizeDone, $ip, $link, $mess)
     {
-        outputT("/var/glx/logErrorReportSizeDone.log", "fid=$fid|uid=$uid|tk=$tokenEnc|size=$sizeDone|ip=$ip|link=$link|msg=$mess");
+        self::outputT("/var/glx/logErrorReportSizeDone.log", "fid=$fid|uid=$uid|tk=$tokenEnc|size=$sizeDone|ip=$ip|link=$link|msg=$mess");
     }
 
-
+    static function getDomainHome()
+    {
+        return 'v2.4share.vn';
+    }
+    
     /**
      *
      * @param $fid
@@ -110,15 +174,15 @@ class FileShareLib
     {
         if (!$sizeDone)
             return;
-        $domainH = @getDomainHome();
+        $domainH = @static::getDomainHome();
         $link = "https://$domainH/tool/gw/fs.php?cmd=update_byte_downloaded&fid=$fid&tokenEnc=$tokenEnc&uid=$uid&sizeDone=$sizeDone&ip=$ip&startTime=$startTime&endTime=$endTime";
-        [$ret, $code] = @curl_get_contents_timeout($link, 3);
+        [$ret, $code] = @static::curl_get_contents_timeout($link, 3);
         $objRet = @json_decode($ret);
 
-        @outputLogErrorReportSizeDone($fid, $uid, $tokenEnc, $sizeDone, $ip, $link, $objRet->message);
+        @static::outputLogErrorReportSizeDone($fid, $uid, $tokenEnc, $sizeDone, $ip, $link, $objRet->message);
 
         if (!$ret || !$objRet || $objRet->code != 1) {
-            @outputLogErrorReportSizeDone($fid, $uid, $tokenEnc, $sizeDone, $ip, $link, $objRet->message);
+            @static::outputLogErrorReportSizeDone($fid, $uid, $tokenEnc, $sizeDone, $ip, $link, $objRet->message);
         }
     }
 
@@ -203,14 +267,14 @@ class FileShareLib
                     } else
                         $endTime = time();
 
-                    @updateSizeDownloadRemote($fid, $uid, $tokenEnc, $countByte, $_SERVER['REMOTE_ADDR'], $tmpTime, $endTime);
+                    @static::updateSizeDownloadRemote($fid, $uid, $tokenEnc, $countByte, $_SERVER['REMOTE_ADDR'], $tmpTime, $endTime);
                     $startTime = time();
                     $countByte = 0;
                 }
         }
 
         if ($countByte)
-            @updateSizeDownloadRemote($fid, $uid, $tokenEnc, $countByte, $_SERVER['REMOTE_ADDR'], $startTime0, time());
+            @static::updateSizeDownloadRemote($fid, $uid, $tokenEnc, $countByte, $_SERVER['REMOTE_ADDR'], $startTime0, time());
         // exec("echo END OF FILE-`date '+%Y-%m-%d %H:%M:%S'` >>  /var/tmp/log_download_userfile");
         fclose($fp);
     }

@@ -132,9 +132,14 @@ class fslib
         }
         $m1 = explode("|", $tk);
         $location = $m1[1];
+
+        if(!$location)
+            return '';
+
         if (strlen($location) != 1) {
-            http_response_code(500);
-            self::loi("Not valid token location!");
+//            http_response_code(500);
+//            self::loi("Not valid token location:  '$location'");
+            return $location;
         }
         return "sd$location";
     }

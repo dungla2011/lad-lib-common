@@ -308,7 +308,7 @@ class MetaOfTableInDb extends MetaTableCommon
                 $folderClass = $this::$folderParentClass;
                 if($folderClass instanceof \App\Models\ModelGlxBase);
                 $mtFolder = $folderClass::getMetaObj();
-                if($module == 'admin')
+//                if($module == 'admin') //5.12.24 tai sao lai co dieu kien nay
                     if($tmp1 = $mtFolder->getAdminUrlWeb($module))
                         return $tmp1."/tree";
             }
@@ -1025,6 +1025,8 @@ class MetaOfTableInDb extends MetaTableCommon
     }
 
     /**
+     * 12.2024: có thể không dùng hàm này nữa, vì joinSQL là đủ, hàm nàu có lúc gây lỗi nhân bản 1 id ra nhiều trong index
+     *
      * Các field có join với các bảng khác
      * @return null
      */
@@ -2082,7 +2084,7 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
                 ?>
 
 
-                <div data-code-pos="ppp1666347493381" class="divTable2Cell cellHeader <?php echo $field ?>" title="Sort <?php
+                <div data-code-pos="ppp1666347493381" class="divTable2Cell resizable  cellHeader <?php echo $field ?>" title="Sort <?php
                 echo $field . " - " .$objMeta->width_col;
                 ?>"
                 style="<?php
@@ -2090,7 +2092,7 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
                     echo ";width: ".$objMeta->width_col."px;";
                     ?>"
                 >
-
+                    <div class="resize-handle" title="Resize this column"></div>
                     <?php
 
                     if($field != 'id' && ($objMeta->isEditableField($field , $gid))){
@@ -2220,9 +2222,16 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                     $tmpId = $objData->getId();
                                     if($randX = ($objMeta0::$preDataAfterIndex['rand_id'][$tmpId]->rand ?? ''))
                                         $dataId = $randX;
-                                    else
-                                        $dataId = ClassRandId2::getRandFromId($tmpId);
+                                    else {
+                                        if($objData->id__)
+                                            $dataId = $objData->id__;
+                                        else
+                                            $dataId = ClassRandId2::getRandFromId($tmpId);
+                                    }
                                 }
+
+
+//                                dump($objData->id__);
 
                                 $stt++;
                                 //self::$retAllTableToExport .= "$dataId\t";
@@ -2346,6 +2355,10 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                               data-tablerow="<?php echo $row ?>"
                                               data-edit-able="<?php echo $isEdit ?>"
                                               data-tablecol="<?php echo $col ?>" title="">
+
+
+
+
                                             <?php
                                             if ($field == 'id' || $field == '_id'){
                                                 $padSt = '';
@@ -2559,7 +2572,7 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
 
                                                         data-field='<?php echo $field ?>' type="<?php echo $typeText ?>"
                                                         data-autocomplete-id="<?php echo $dataId . "-$field" ?>"
-                                                        value="<?php echo htmlspecialchars($valueField) ?>"
+                                                        value="<?php if($valueField) echo htmlspecialchars($valueField) ?>"
                                                         name="<?php echo $field ?>[]"
                                                         title="<?php if($valueField) echo htmlspecialchars($valueField)  . " | " . $objMeta->getFullDescField($field) ?>"
                                                         data-id="<?php echo $dataId ?>"

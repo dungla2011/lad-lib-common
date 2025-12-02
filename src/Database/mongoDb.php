@@ -5,6 +5,7 @@ use App\Components\clsParamRequestEx;
 use Base\ClassBaseGlx;
 use Base\modelBaseMongo;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use LadLib\Common\Database\MongoDbConnection;
 
 
@@ -17,6 +18,13 @@ class mongoDb extends clsBaseGlx {
         if(isset($this->id))
             return $this->id;
         return null;
+    }
+
+    function hasField($field)
+    {
+        if (isset($this->$field))
+            return true;
+        return false;
     }
 
     static function getApiMetaArray(){

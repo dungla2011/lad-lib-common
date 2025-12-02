@@ -1,11 +1,15 @@
 <?php
 
+
 namespace LadLib\Common\Database;
 
 use App\Components\ClassRandId2;
 use App\Components\clsParamRequestEx;
 use App\Components\Helper1;
+use App\Models\CacheKeyValue;
 use App\Models\DemoFolderTbl;
+use App\Models\DemoTbl;
+use App\Models\DemoTbl_Meta;
 use App\Models\FolderFile;
 use App\Models\GiaPha;
 use App\Models\ModelGlxBase;
@@ -18,14 +22,22 @@ use Base\ModelUserGroup;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use LadLib\Common\UrlHelper1;
 use LadLib\Laravel\Database\DbHelperLaravel;
 use function Clue\StreamFilter\fun;
 use function Clue\StreamFilter\remove;
 use function GuzzleHttp\Psr7\parse_request;
 use function MongoDB\select_server_for_aggregate_write_stage;
+
+
+//if(isDebugIp())
+    define("DEF_META_USE_DB", 0);
+//else
+//    define("DEF_META_USE_DB", 0);
 
 /**
  * Lớp metadata của từng bảng trong db
@@ -87,6 +99,8 @@ class MetaOfTableInDb extends MetaTableCommon
     //
     public static $allowAdminShowTree = 0;
 
+    public static $titleAfterFolderButton = null;
+
     static $retAllTableToExport;
 
     static $limitRecord = 20;
@@ -123,11 +137,97 @@ class MetaOfTableInDb extends MetaTableCommon
         return 0;
     }
 
+    static function isDisableAddItemIndex()
+    {
+
+    }
+
+    static function isDisableTrashIndex()
+    {
+
+    }
+
+    static function isDisableSaveAllItemIndex()
+    {
+
+    }
+
+    function getArraySelectNumber()
+    {
+        return [5, 10, 20, 50, 100];
+
+    }
+
+    static function isDisableMenuBarIndex()
+    {
+
+    }
+
+    /**
+     * ID mẫu, không được update, trừ khi là supper Admin, dùng cho các bản ghi mẫu
+     * @return int
+     */
+    public static function getDefaultTemplateId()
+    {
+        return 0;
+    }
+
+    public function getMobileAction($field)
+    {
+
+    }
+
+    public static function getDefaultTemplateField(){
+
+    }
+
+    public function getDefaultValue($field)
+    {
+        return null;
+    }
+
+    function getExtraFieldTypeMobile($field)
+    {
+
+    }
+
+    /**
+     * @param $field
+     * @return void
+     * Ẩn hiện các trươnờng phụ thuộc vào giá trị của trường khác
+     */
+    public function getFieldShowDependency($field)
+    {
+
+
+    }
+
+    function getPreHtmlValueEditField($objData, $field)
+    {
+        return null;
+    }
+
     /**
      * Hàm bổ xung SQL, để lấy ra các trường mở rộng, hoặc các trường trong bảng join
      * @param \Illuminate\Database\Eloquent\Builder|null $x
      * @param $getSelect
      * @return void
+     *
+      public function getFullSearchJoinField()
+      {
+      return [
+      'event_infos.name',
+      ];
+      }
+      //...
+      function getSqlOrJoinExtraIndex(\Illuminate\Database\Eloquent\Builder &$x = null, $getSelect = 0)
+      {
+      return $x->leftJoin('event_infos', 'event_id', '=', 'event_infos.id')
+      ->addSelect([
+      'event_infos.name AS _name',
+      ]);
+     }
+     *
      */
     public function getSqlOrJoinExtraIndex(\Illuminate\Database\Eloquent\Builder &$x = null, $getSelect = 0)
     {
@@ -157,7 +257,7 @@ class MetaOfTableInDb extends MetaTableCommon
     public function getFullSearchJoinField()
     {
         return [
-
+//            'users.email'  => "like",
         ];
 
     }
@@ -203,7 +303,7 @@ class MetaOfTableInDb extends MetaTableCommon
      * @param $post
      * @return void
      */
-    public function beforeInsertDb($get = null, $post = null){
+    public function beforeInsertDb(&$getPost = null, $post = null){
 
     }
 
@@ -211,7 +311,10 @@ class MetaOfTableInDb extends MetaTableCommon
      * Hàm chạy sau khi insert obj vào db
      * Neu co loi, thi khong insert duoc, vi Commit se khong duoc goi
      */
-    public function afterInsertDb($obj, $get = null, $post = null){
+    public function afterInsertApi($obj, $get = null, $post = null){
+
+        //Neu Obj co truong id__, thi se lay rand tu rand_table, va update lai id__
+
 
     }
 
@@ -225,6 +328,7 @@ class MetaOfTableInDb extends MetaTableCommon
 
 //        if($field == 'parent_multi' || $field == 'parent_multi2')
 
+        $valIntOrStringInt = $obj->parent_id;
         if(!$valIntOrStringInt)
             return null;
 
@@ -245,23 +349,37 @@ class MetaOfTableInDb extends MetaTableCommon
 
         $ret = '';
         $retApi = [];
+
+
         //if(strstr($valIntOrStringInt, ','))
         if($valIntOrStringInt)
         {
             $valIntOrStringInt = trim(trim($valIntOrStringInt,','));
             $mVal = explode(",", $valIntOrStringInt);
-            if($mm = $objFolder->whereIn("id", $mVal)->get()){
-                foreach ($mm AS $obj1) {
-                    $mName = $obj1->getFullPathParentObj(2);
-                    $randId = $obj1->id;
-                    if($useRand)
-                        $randId = qqgetRandFromId_($obj1->id);
-                    $retApi[$randId] = $obj1->name;
-                    $retApi[$randId] = $name0 = implode("/", $mName);;
-                    $ret .= "<span data-code-pos='ppp17236279527301' class='one_node_name' title='remove this: $randId' data-id='$randId' data-field='$field'> &nbsp
-<i class='fa fa-times'></i> &nbsp $name0 &nbsp</span>";
-                }
+//
+            if(isDebugIp()){
+//                $clsx = $objFolder::class;
+//                echo "$clsx <pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
+//                print_r($mVal);
+//                echo "</pre>";
             }
+            if(isUUidStr($valIntOrStringInt))
+                $mm = $objFolder->whereIn("ide__", $mVal)->get();
+            else
+                $mm = $objFolder->whereIn("id", $mVal)->get();
+
+
+            foreach ($mm AS $obj1) {
+                $mName = $obj1->getFullPathParentObj(2);
+                $randId = $obj1->id;
+                if($useRand)
+                    $randId = qqgetRandFromId_($obj1->id);
+                $retApi[$randId] = $obj1->name;
+                $retApi[$randId] = $name0 = implode("/", $mName);;
+                $ret .= "<span data-code-pos='ppp17236279527301' class='one_node_name' title='remove this: $randId' data-id='$randId' data-field='$field'> &nbsp
+<i class='fa fa-times'></i> &nbsp $name0 &nbsp</span>";
+            }
+
         }
 
         if(Helper1::isApiCurrentRequest())
@@ -285,6 +403,17 @@ class MetaOfTableInDb extends MetaTableCommon
     }
 
 
+    function getMapFieldAndDesc()
+    {
+        if (!$mMeta = $this->getMetaDataApi())
+            return [];
+        $ret = [];
+        foreach ($mMeta AS $field => $objMeta)
+            $ret[$field] = $objMeta->getDescOfField($field);
+        return $ret;
+    }
+
+
     function isDateTimeType($field){
         $field = $this->getOrginalFieldMultiLange($field);
         if ($this->getDataType($field) == DEF_DATA_TYPE_IS_DATE_TIME)
@@ -297,9 +426,9 @@ class MetaOfTableInDb extends MetaTableCommon
     }
 
     function setDefaultValue($field){
-//        if ($field == 'user_id') {
-//            return getUserIdCurrentInCookie();
-//        }
+        if ($field == 'parent_id') {
+            return 0;
+        }
     }
 
     function getUrlTreeFolder($module = 'admin'){
@@ -484,25 +613,60 @@ class MetaOfTableInDb extends MetaTableCommon
         return $str;
     }
 
-    public function getApiUrl($module = 'admin')
+    public function getApiUrl($module = 'admin', $widthDomain = 1)
     {
+        if(isAdminCookie()){
+//            die("MODULE = $module");
+        }
+
+        $pad1 = '';
+        if($module[0] == '_'){
+
+            $pad1 = "_";
+        }
+
         $mUrl = (parse_url(request()->url()));
         $baseDomain = $mUrl['scheme'];
         $baseDomain.='://'.$mUrl['host'];
         if(isset($mUrl['port']))
             $baseDomain.=':'.$mUrl['port'];
 
-        if($module == 'admin'){
-//            if (!isset($_SERVER) || !isset($_SERVER['SERVER_NAME']))
-//                return "http://localhost:9081" . static::$api_url_admin;
-            //return "https://" . $_SERVER['SERVER_NAME'] . ":" . $_SERVER['SERVER_PORT'] . static::$api_url_admin;
-            return $baseDomain.static::$api_url_admin;
+        $api_url_admin = static::$api_url_admin;
+        $api_url_member = static::$api_url_member;
+
+        // Auto-generate API URLs if empty
+        if (empty($api_url_admin) || empty($api_url_member)) {
+            $classNameWithMeta = get_called_class();
+            // Remove namespace and _Meta suffix
+            $className = class_basename($classNameWithMeta);
+            if (strpos($className, '_Meta') !== false) {
+                $className = str_replace('_Meta', '', $className);
+            }
+
+            // Convert PascalCase to kebab-case
+            // VpsPlan -> vps-plan
+            $dashedName = preg_replace('/([a-z])([A-Z])/', '$1-$2', $className);
+            $dashedName = strtolower($dashedName);
+
+            if (empty($api_url_admin)) {
+                $api_url_admin = "/".$pad1."api/{$dashedName}";
+            }
+            if (empty($api_url_member)) {
+                $api_url_member = "/".$pad1."api/member-{$dashedName}";
+            }
         }
 
-//        if (!isset($_SERVER) || !isset($_SERVER['SERVER_NAME']))
-//            return "http://localhost:9081" . static::$api_url_member;
-//        return "https://" . $_SERVER['SERVER_NAME'] . ":" . $_SERVER['SERVER_PORT'] . static::$api_url_member;
-        return $baseDomain.static::$api_url_member;
+        if($module == 'admin' || $module == '_admin'){
+            if(!$widthDomain)
+                return $api_url_admin;
+
+            return $baseDomain.$api_url_admin;
+        }
+
+        if(!$widthDomain)
+            return $api_url_member;
+
+        return $baseDomain.$api_url_member;
     }
 
     function checkJoinFuncExistAndGetName(){
@@ -591,6 +755,8 @@ class MetaOfTableInDb extends MetaTableCommon
             $ret0 = static::$index_view_member;
         if(str_starts_with($uri, '/admin'))
             $ret1 = static::$index_view_admin;
+        if(str_starts_with($uri, '/_admin'))
+            $ret1 = static::$index_view_admin;
         $ret = $ret0 ? $ret0 : $ret1;
         return $ret;
     }
@@ -600,7 +766,35 @@ class MetaOfTableInDb extends MetaTableCommon
         return \LadLib\Laravel\Database\DbHelperLaravel::getRelationshipsBaseModel($modelName);
     }
 
+    static function getMetaInfoFromCache0($table){
+
+        if (!Schema::hasTable('cache_key_values'))
+        {
+            // Create the table
+            DB::statement("
+            CREATE TABLE IF NOT EXISTS cache_key_values (
+                `id` VARCHAR(255) NOT NULL PRIMARY KEY,
+                `value` MEDIUMTEXT,
+                `created_at` VARCHAR(20),
+                `updated_at` VARCHAR(20)
+            );
+        ");
+        }
+
+        $sid = SiteMng::isUseOwnMetaTable();
+        $tmpFile = "/glx_web/$sid-glx_cache_meta_api-$table";
+        $obj = CacheKeyValue::find($tmpFile);
+        if($obj)
+            eval($obj->value);
+        if(isset($valStoreInCache))
+            return $valStoreInCache;
+        return null;
+    }
+
     static function getMetaInfoFromCache($table){
+
+//        if(isDebugIp())
+//            return self::getMetaInfoFromCache0($table);
 
         $sid = SiteMng::isUseOwnMetaTable();
 
@@ -619,12 +813,69 @@ class MetaOfTableInDb extends MetaTableCommon
 
     }
 
+    /**
+     * Dummy Function
+     * Đưa vào View chung các Block Ediit bổ xung khi cần
+     */
+    function preZoneFieldEdit($field, $obj = null)
+    {
+
+    }
+
+    /**
+     * Dummy Function
+     * Đưa vào View chung các Block Ediit bổ xung khi cần
+     */
+    function afterZoneFieldEdit($field, $obj = null)
+    {
+        return '';
+    }
+
+    static function setMetaInfoToCache0($table, $data){
+
+        //Kiem tra neu bang chua co moi tạo:
+        if (!Schema::hasTable('cache_key_values'))
+        {
+            // Create the table
+            DB::statement("
+            CREATE TABLE IF NOT EXISTS cache_key_values (
+                `id` VARCHAR(255) NOT NULL PRIMARY KEY,
+                `value` MEDIUMTEXT,
+                `created_at` VARCHAR(20),
+                `updated_at` VARCHAR(20)
+            );
+        ");
+        }
+
+
+        $val = var_export($data, true);
+        $sid = SiteMng::isUseOwnMetaTable();
+        $file = "/glx_web/$sid-glx_cache_meta_api-$table";
+
+        if(!$obj = CacheKeyValue::find($file)){
+            $obj = new CacheKeyValue();
+            $obj->id = $file;
+            $obj->value = '<?php $valStoreInCache = ' . $val . ';';
+            $obj->save();
+        }
+        else{
+            if(!$data){
+                $obj->delete();
+                return ;
+            }
+            $obj->value = '<?php $valStoreInCache = ' . $val . ';';
+            $obj->save();
+        }
+    }
+
     static function setMetaInfoToCache($table, $data){
+
+//        if(isDebugIp())
+//            return self::setMetaInfoToCache0($table, $data);
+
         $val = var_export($data, true);
         $fold = sys_get_temp_dir()."/glx_web";
         $sid = SiteMng::isUseOwnMetaTable();
-
-//        "/glx_web/$sid-glx_cache_meta_api-$table";
 
         $file = $fold."/$sid-glx_cache_meta_api-$table";
         if(!file_exists($fold))
@@ -651,13 +902,50 @@ class MetaOfTableInDb extends MetaTableCommon
     function insertOneFieldToMetaTable($fieldObj, $table, $stt)
     {
         $objInsert = new MetaTableCommon();
+
+
         $objInsert->field = $fieldObj;
         $objInsert->table_name_model = $table;
-        $objInsert->sname = 's' . $stt;
+
+        $mx = ModelMetaInfo::where('table_name_model', $table)->pluck('sname')->toArray();
+
+        // Lấy số max từ các sname (format: s1, s2, s3, ...)
+        $maxNumber = 0;
+        foreach($mx as $sname) {
+            // Bỏ chữ 's' và lấy số
+            $number = (int) substr($sname, 1);
+            if($number > $maxNumber) {
+                $maxNumber = $number;
+            }
+        }
+
+        if(isAdminCookie()){
+//            echo "<pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
+//            print_r($mx);
+//            echo "Max number: " . $maxNumber . "\n";
+//            echo "Next sname: s" . ($maxNumber + 1) . "\n";
+//            echo "</pre>";
+//            die();
+        }
+
+
+
+        $objInsert->sname = 's' . ($maxNumber + 1);
+//        $objInsert->sname = 's' . $stt;
 
         $objInsert->setDefaultMetaTypeField($fieldObj);
 
 //        $obj = new ModelMetaInfo();
+
+
+        unset($objInsert->id); //Bỏ id, vì sẽ tự động tăng, không cần set id
+        if(isAdminCookie()){
+
+//            echo "<pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
+//            print_r($objInsert->toArray());
+//            echo "</pre>";
+//            die();
+        }
 
         ModelMetaInfo::insert($objInsert->toArray());
 
@@ -681,7 +969,7 @@ class MetaOfTableInDb extends MetaTableCommon
 
     //Return 1 mặc định bình thường, nếu return 0, thì sẽ 0 show Data nào
     //Unset dataView
-    function excuteBeforeIndex($param = null){
+    function executeBeforeIndex($param = null){
         return 1;
     }
 
@@ -715,7 +1003,8 @@ class MetaOfTableInDb extends MetaTableCommon
 //            }
         }
         $arrId = $data->pluck('id')->toArray();
-        self::$preDataAfterIndex['rand_id'] = DB::table('rand_table')->whereIn('id', $arrId)->get()->keyBy('id');
+
+//        self::$preDataAfterIndex['rand_id'] = DB::table('rand_table')->whereIn('id', $arrId)->get()->keyBy('id');
 
 //        dump(self::$preDataAfterIndex);
     }
@@ -770,6 +1059,8 @@ class MetaOfTableInDb extends MetaTableCommon
             if (!$found) {
 //                echo "\n<br/> Inxert $fieldObj ...";
                 $haveUpdateOrInsert++;
+
+
                 $this->insertOneFieldToMetaTable($fieldObj, $this->table_name_model, $cc);
             }
         }
@@ -846,32 +1137,26 @@ class MetaOfTableInDb extends MetaTableCommon
     {
         if (!$this->table_name_model)
             loi("Not define table_name_model: ". get_called_class());
-
         $mAllFieldObj = array_keys($mFieldAndDataType);
-
-
+        if(isDebugIp()){
+//            echo "<pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
+//            print_r($mAllFieldObj);
+//            echo "</pre>";
+//            die();
+        }
         //Bổ xung thêm các trường mở rộng thông tin, là các trường trong metaObj có gạch chân ở đầu
         $mAllFieldObjAndExtra = array_merge($mAllFieldObj, $this->getExtraFieldDb());
-
         $mmAllDb = $this->initGetMetaTable($mAllFieldObjAndExtra);
-
-
-
         $ret = [];
         if($mmAllDb)
         foreach ($mmAllDb as $obj) {
             //Đôi lúc (bị lỗi) có obj không có field
             if (!in_array($obj->field, $mAllFieldObjAndExtra) || !isset($obj->field))
                 continue;
-
             if(isset($mFieldAndDataType[$obj->field]))
                 $obj->data_type_in_db = $mFieldAndDataType[$obj->field];
-
             //Xử lý hard code, không lấy từ DB, mà lấy từ code đã fix các field được hardcode:
             foreach ($obj as $field1 => $val1) {
-
-
-
                 if (MetaTableCommon::isHardCodeMetaField($field1)) {
                     $objHardCode = \LadLib\Common\Database\MetaTableCommon::getMetaObjFromTableName($this->table_name_model);
                     $objHardCode->setDbInfoGetMeta($this->table_name_model, static::$_dbConnection);
@@ -886,7 +1171,6 @@ class MetaOfTableInDb extends MetaTableCommon
             $obj->table_name_model = $this->table_name_model;
             $ret[$obj->field] = $obj;
         }
-
         return $ret;
     }
 
@@ -908,6 +1192,7 @@ class MetaOfTableInDb extends MetaTableCommon
 
         //!isset($mm['_id'])
         //Todo: cần kiểm tra cache về tốc độ, nếu cho cache vào test số giây load xong trang DEMO
+//        if(0)
         if($mm = MetaOfTableInDb::getMetaInfoFromCache($table)) {
 //            if($this->table_name_model[0] == '_'){
 //                if(!isset($mm['_id']))
@@ -915,7 +1200,7 @@ class MetaOfTableInDb extends MetaTableCommon
 //            }
 //            else
                 if(!isset($mm['id']))
-                    die("\nNot init meta table2 ($table)???");
+                    die("\nNot init meta table2 ($table)??? May be check DB_DRIVER=pgsql, clear all cache");
             return $mm;
         }
 
@@ -945,9 +1230,20 @@ class MetaOfTableInDb extends MetaTableCommon
             if($tmp) {
 //                echo " <span style='font-size: small'> -Model: " . $tmp::class . "</span>";
                 $mmFieldAndDataType = $tmp->getTableColumnAndDataType();
+                if(isDebugIp()){
+//                    die("xxx111");
+                }
             }
             else {
+
                 $mmFieldAndDataType = DbHelperLaravel::getTableColumnAndDataType(null, $table);
+                if(isDebugIp()){
+//                    echo "<pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
+//                    print_r($mmFieldAndDataType);
+//                    echo "</pre>";
+//
+//                    die("xxx1112");
+                }
             }
         }
         if($mJoinF = $this->getJoinField()){
@@ -962,6 +1258,13 @@ class MetaOfTableInDb extends MetaTableCommon
             }
         }
 
+        if(isDebugIp()){
+//            echo "<pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
+//            print_r($mmFieldAndDataType);
+//            echo "</pre>";
+//            die();
+        }
+
         $mm = $this->getOrInitMetaTableIfNotHave($mmFieldAndDataType);
 
 //        if($this->table_name_model[0] == '_'){
@@ -970,10 +1273,15 @@ class MetaOfTableInDb extends MetaTableCommon
 //        }
 //        else
         if(!isset($mm['id'])){
+
+//            echo "<pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
+//            print_r($mmFieldAndDataType);
+//            echo "</pre>";
 //            echo " $table <pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
 //            print_r($mm);
 //            echo "</pre>";
-            die("\nNot init meta table21 ($table)???");
+            die("\nNot init meta table21 ($table)??? May be check DB_DRIVER=pgsql, clear all cache");
+
         }
 
         //Gán singleton
@@ -994,20 +1302,33 @@ class MetaOfTableInDb extends MetaTableCommon
         MetaOfTableInDb::deleteClearCacheMetaApi($this->table_name_model);
     }
 
+    public static function deleteClearCacheMetaApi0($table){
+        $sid = SiteMng::isUseOwnMetaTable();
+        $file = "/glx_web/$sid-glx_cache_meta_api-$table";
+        if (Schema::hasTable('cache_key_values'))
+            CacheKeyValue::find($file)?->delete();
+    }
     /**
      * Xóa cache file meta và static metaData
      * @param $table
      */
     public static function deleteClearCacheMetaApi($table){
 
+//        if(isDebugIp())
+//            return self::deleteClearCacheMetaApi0($table);
+
         $objMeta = MetaOfTableInDb::getMetaObjFromTableName($table);
         $objMeta::$_mMetaData = [];
 
         $sid = SiteMng::isUseOwnMetaTable();
-
         $tmpFile = sys_get_temp_dir()."/glx_web/$sid-glx_cache_meta_api-$table";
         if(file_exists($tmpFile))
             unlink($tmpFile);
+
+        //For tester, vì clear tren server chu khong phai tren window
+        if(isCli()){
+            @file_get_contents(env("APP_URL")."/tool/gw/delete_cache_meta.php?table=$table");
+        }
 //        $cacheName = "meta_data_table_cache_".$table;
 //        Cache::forget($cacheName);
     }
@@ -1090,7 +1411,16 @@ class MetaOfTableInDb extends MetaTableCommon
 
 
         foreach ($mm as $m1)
-            foreach ($m1 as $meta => $value)
+            foreach ($m1 as $meta => $value){
+
+                if(is_array($value)){
+                    continue;
+//                    echo "<pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
+//                    print_r($value);
+//                    echo "</pre>";
+//                    die(" $sname / $m1->field " );
+                }
+
                 if ("$value" == "$sname") {
 //                    if($m1->field[0] == '_')
 //                        return substr($m1->field, 1);
@@ -1103,6 +1433,7 @@ class MetaOfTableInDb extends MetaTableCommon
                         }
                     return $m1->field;
                 }
+            }
         return null;
     }
 
@@ -1124,7 +1455,12 @@ class MetaOfTableInDb extends MetaTableCommon
 
     }
 
-    function getDescOfField($field, $replaceDash = 0)
+    function getExtraDataEditFieldNameX1($field)
+    {
+
+    }
+
+    function getDescOfField($field, $replaceDash = 0, $lang = null)
     {
 
 //        if($m1 = static::getMapColFieldEx())
@@ -1132,8 +1468,31 @@ class MetaOfTableInDb extends MetaTableCommon
 //                return $m1[$field]['name'];
 
 
+
+
         $mm = $this->getMetaDataApi();
         $field = $this->getOrginalFieldMultiLange($field);
+
+        if($lang) {
+//            echo "<pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
+//            print_r($mm);
+//            echo "</pre>";
+//            die();
+//            die("xxx1 $this->table_name_model");
+//            $jsonFile = "/var/glx/weblog/db_language/$this->table_name_model.$lang.json";
+//            if(file_exists($jsonFile) && filesize($jsonFile) < 100000){
+//                if($js = json_decode(file_get_contents($jsonFile))){
+//                    if($js->$field ?? '')
+//                        return mb_ucfirst($js->$field);
+//                }
+//            }
+
+            if ($mm[$field]?->translations[$lang] ?? ''){
+
+                return mb_ucfirst($mm[$field]->translations[$lang]);
+            }
+        }
+
         if ($mm[$field]?->name ?? '')
             return mb_ucfirst(($mm[$field]->name));
         if($replaceDash)
@@ -1306,6 +1665,22 @@ class MetaOfTableInDb extends MetaTableCommon
         return 0;
     }
 
+    function isShowMobileFields($field)
+    {
+        if($field == 'id')
+            return 1;
+        if($field == 'name')
+            return 1;
+        $field = $this->getOrginalFieldMultiLange($field);
+
+//        if($this->isEditableField($field, $gid))
+//            return 1;
+        if (!$mMeta = $this->getMetaDataApi())
+            return 0;
+        if ($mMeta[$field]->show_index_mobile ?? '')
+            return 1;
+    }
+
     function isShowGetOne($field, $gid)
     {
         if(!$gid)
@@ -1443,6 +1818,10 @@ class MetaOfTableInDb extends MetaTableCommon
             return 0;
 
 //        die("$field / " .$mMeta[$field]->editable_get_one);
+//        if($mMeta[$field]->editable_get_one && $gid)
+//        if(intval($mMeta[$field]->editable_get_one) == intval($gid)){
+//            return 1;
+//        }
 
         if(strstr($gid, ',') !==false){
             $m1 = explode(",", $gid);
@@ -1648,6 +2027,8 @@ class MetaOfTableInDb extends MetaTableCommon
     {
         if (!$mMeta = $this->getMetaDataApi())
             return null;
+        if(!isset($mMeta[$field]))
+            return null;
         return $mMeta[$field]->data_type_in_db;
     }
 
@@ -1666,7 +2047,7 @@ class MetaOfTableInDb extends MetaTableCommon
     public function getHardCodeMetaObj($field) {
 
         $objMeta = new MetaOfTableInDb();
-        if($field == 'log' || $field == 'note' ) {
+        if($field == 'log' || $field == 'note' || $field == 'comment' ) {
             $objMeta->dataType = DEF_DATA_TYPE_TEXT_AREA;
         }
         if ($field == 'image_list')
@@ -1699,15 +2080,36 @@ class MetaOfTableInDb extends MetaTableCommon
      */
     public function getAdminUrlWeb($module = 'admin')
     {
-        if($module == 'admin'){
-            if (!static::$web_url_admin)
-                return "not_set_admin_url_main_of_" . basename(get_called_class());
-            return static::$web_url_admin;
+        $web_url_admin = static::$web_url_admin;
+        $web_url_member = static::$web_url_member;
+
+        // Auto-generate URLs if empty
+        if (empty($web_url_admin) || empty($web_url_member)) {
+            $classNameWithMeta = get_called_class();
+            // Remove namespace and _Meta suffix
+            $className = class_basename($classNameWithMeta);
+            if (strpos($className, '_Meta') !== false) {
+                $className = str_replace('_Meta', '', $className);
+            }
+
+            // Convert PascalCase to kebab-case
+            // VpsPlan -> vps-plan
+            $dashedName = preg_replace('/([a-z])([A-Z])/', '$1-$2', $className);
+            $dashedName = strtolower($dashedName);
+
+            if (empty($web_url_admin)) {
+                $web_url_admin = "/$module/{$dashedName}";
+            }
+            if (empty($web_url_member)) {
+                $web_url_member = "/$module/{$dashedName}";
+            }
         }
 
-        if (!static::$web_url_member)
-            return "not_set_member_url_main_of_" . basename(get_called_class());
-        return static::$web_url_member;
+        if($module == 'admin' || $module == '_admin' ){
+            return $web_url_admin;
+        }
+
+        return $web_url_member;
     }
 
 
@@ -1778,14 +2180,21 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
         if(!$mMetaAll)
             return null;
         $objMeta = end($mMetaAll);
-
+        $lang0 = $lang = App::getLocale();
         $mprUrl = array_keys(UrlHelper1::getArrParamUrl());
+
+        $lang = App::getLocale();
+        if (isAdminCookie()){
+//            die("LANG = $lang");
+        }
 
         $gid = $objParamEx->set_gid;
         $mF = $objMeta->getListFilterField($gid);
         if(!$mF)
             return;
         $requestAllAndRemoveInputSearchField = $params;
+
+        $totalItem = $objParamEx->total_item ?? 0;
 
         ?>
         <div class="">
@@ -1824,7 +2233,13 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
                 $valSearch = str_replace(["'", '"' ,'<', '>'], '', $valSearch);
 
 
-                $des = $objMeta->getDescOfField($field);
+
+                $des = $objMeta->getDescOfField($field , null, $lang);
+
+                if(isAdminCookie()){
+//                    dump("$des, $lang");
+                }
+
                 //Bỏ các param Trong search, để đưa vào hidden phía sau, nhằm mục đích giữ nguyên url param khi post lại
                 unset($requestAllAndRemoveInputSearchField[$sField]);
                 unset($requestAllAndRemoveInputSearchField[$searchOpt]);
@@ -1832,7 +2247,8 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
 
                 $stDisplay = '';
                 if(!$valSearch && $field!= 'id' && $field != 'name')
-                    $stDisplay = ';display: none;';
+                    if(!($objMeta instanceof DemoTbl_Meta)) //For tester
+                        $stDisplay = ';display: none;';
 
                 //Nếu url có s opt của field:
                 if(in_array( DEF_PREFIX_SEARCH_URL_PARAM_GLX. $objMeta->getShortNameFromField($field), $mprUrl)){
@@ -1860,6 +2276,11 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
                             if (isset($params[$searchOpt]) && $params[$searchOpt] == $k)
                                 $haveSelect = $padSelect = "selected";
                             if(!$padSelect && $isStringForSearch){
+                                if($totalItem > 1000){
+                                    if($v == '=')
+                                        $padSelect = 'selected';
+                                }
+                                else
                                 if($v == 'C')
                                     $padSelect = 'selected';
                             }
@@ -1957,7 +2378,7 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
                             data-lpignore = 'true'
                             data-code-pos="ppp1667865513803" style="<?php echo $displayInput?> ; height: 28px; "
                                data-field-s="<?php echo $field ?>"
-                            type="text" placeholder="Tìm <?php echo $des ?>"
+                            type="text" placeholder="<?php echo __('index-data.search_placeholder') . ' ' . $des ?>"
                                title="<?php echo $descField . " / " . $field ?>"
                                class="<?php echo $padClass ?> form-control search_top_grid input_value_to_post input-sm "
                                name="<?php echo $sField ?>"
@@ -1990,14 +2411,14 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
 
             ?>
             <div class="div_filter_item border_transparent search_btn x1" data-field-filter='' style="">
-                <button title="Thêm-Bớt cột tìm kiếm" class="btn btn-default btn-sm" type="button" id="add_field_btn_filter">
+                <button title="<?php echo __('index-data.expand_search_columns') ?>" class="btn btn-default btn-sm" type="button" id="add_field_btn_filter">
                     <i class="fa fa-plus-square mx-1"></i>
-                    Mở rộng
+                    <?php echo __('index-data.search_title') ?>
                 </button>
 
-                <button title="Tìm kiếm" id="search_btn_top" class="btn btn-primary btn-sm search_top_grid1" style="" type="submit">
+                <button title="<?php echo __('index-data.search_title') ?>" id="search_btn_top" class="btn btn-primary btn-sm search_top_grid1" style="" type="submit">
                     <i class="fas fa-search"></i>
-                    Tìm
+                    <?php echo __('index-data.search') ?>
                 </button>
                 <i class="fa fa-times cancel_filter_item"></i>
 
@@ -2013,7 +2434,7 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
                     $urlClearFilter = \LadLib\Common\UrlHelper1::clearUrlParamsStartWith($urlClearFilter, DEF_PREFIX_SEARCH_OPT_URL_PARAM_GLX);
 
                     echo "<a href='$urlClearFilter' class='btn btn-warning btn-sm search_top_grid btn-cancel-search'>
-                                        Hủy Tìm</a>";
+                                        " . __('index-data.clear_search') . "</a>";
                 }
                 ?>
                 <i class="fa fa-times cancel_filter_item"></i>
@@ -2034,8 +2455,9 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
     /**
      * Hiển thị form filter TOP index data grid
      * @param MetaOfTableInDb[] $mMetaAll
+     * @param clsParamRequestEx $objParamEx
      */
-    public static function showTableHeaderDataGrid(array $mMetaAll, $params, $gid)
+    public static function showTableHeaderDataGrid(array $mMetaAll, $params, $gid, $objParamEx)
     {
         $objMeta0 = array_values($mMetaAll)[0];
 
@@ -2054,10 +2476,17 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
                 <input class="select_all_check select_one_check" class="" type="checkbox" title="Select all rows">
             </div>
             <div data-code-pos="ppp16493381" class="divTable2Cell cellHeader">
-                STT
+                No
             </div>
             <div class="divTable2Cell cellHeader"> Action</div>
             <?php
+
+            $lang = $objParamEx->getLanguage();
+
+            if(isAdminCookie()){
+//                die(" LLANG $lang");
+            }
+
             self::$retAllTableToExport = '';
             foreach ($mMetaAll as $field=>$objMeta) {
                 if ($objMeta instanceof \LadLib\Common\Database\MetaOfTableInDb) ;
@@ -2081,11 +2510,12 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
                 if(!isset($params['in_trash']) && $field == 'deleted_at')
                     continue;
 
+                $descField = $objMeta->getDescOfField($field,1 , $lang);
                 ?>
 
 
-                <div data-code-pos="ppp1666347493381" class="divTable2Cell resizable  cellHeader <?php echo $field ?>" title="Sort <?php
-                echo $field . " - " .$objMeta->width_col;
+                <div data-code-pos="ppp16663474193381" class="divTable2Cell resizable  cellHeader <?php echo e($field) ?>" title="Sort <?php
+                echo e($field . " - " .$objMeta->width_col);
                 ?>"
                 style="<?php
                 if($objMeta->width_col && is_numeric($objMeta->width_col ) && $objMeta->width_col > 0 && $objMeta->width_col < 500)
@@ -2100,7 +2530,8 @@ B2 (Tìm nằm giữa 2 giá trị, phân cách bởi dấu chấm phẩy: ;)
 data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' data-field='$field' title='tool for $field'></i>";
                     }
 
-                    $descField = $objMeta->getDescOfField($field,1);
+
+
                     self::$retAllTableToExport .= str_replace(" ", '_', $descField) . "\t";
 
                     if ($objMeta->isSortAbleField($field, 1)) {
@@ -2111,8 +2542,8 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                 echo "  <i class='fa fa-arrow-down red_color mr-1'></i> ";
                             }
                         }
-                        echo "<a data-code-pos='ppp1666347484461' data-tester='sort_field_$field' href='$urlSort'>";
-                        echo $descField;
+                        echo "<a data-code-pos='ppp16663476484461' data-tester='sort_field_$field' href='$urlSort'>";
+                        echo e($descField);
                         echo "</a>";
 
 
@@ -2123,7 +2554,7 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                             echo "<a data-code-pos='ppp1666347502214' title='remove sort $field' class='fa fa-times red_color ml-1' href='$urlCancelSort'> </a>";
                         }
                     } else {
-                        echo $objMeta->getDescOfField($field,1);
+                        echo e($descField);
                     }
                     ?>
                 </div>
@@ -2189,7 +2620,7 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                     <div class="divTable2Body">
                         <?php
                         }
-                        \LadLib\Common\Database\MetaOfTableInDb::showTableHeaderDataGrid($mMetaAll, $params, $gid);
+                        \LadLib\Common\Database\MetaOfTableInDb::showTableHeaderDataGrid($mMetaAll, $params, $gid, $objParamEx);
 
 
                         //todo: set admin/member?
@@ -2213,6 +2644,12 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                         $row = 0;
                         if($dataView)
                             foreach ($dataView as $objData) {
+                                if($objData instanceof ModelGlxBase);
+
+                                if(isDebugIp()){
+//                                    dump($objData);
+                                }
+
                                 if(!is_object($objData)){
                                     bl("Lỗi not object", serialize($objData));
                                 }
@@ -2220,6 +2657,9 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                 $dataId = $objData->getId();
                                 if($objMeta0->isUseRandId()) {
                                     $tmpId = $objData->getId();
+                                    if($objData->ide__)
+                                        $dataId = $objData->ide__;
+                                    else
                                     if($randX = ($objMeta0::$preDataAfterIndex['rand_id'][$tmpId]->rand ?? ''))
                                         $dataId = $randX;
                                     else {
@@ -2252,7 +2692,7 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                         echo "$adminUrl/edit/$dataId";
                                         ?>"><i title="Edit" class="fa fa-edit " style="font-size: 20px; margin: 2px;"></i></a>
 
-                                        <i title="Save" style="font-size: 21px; color: dodgerblue" class="fa fa-save save_one_item"  data-id="<?php echo $dataId ?>" style="color: dodgerblue"></i>
+                                        <i title="Save" style="font-size: 21px; color: dodgerblue" class="fa fa-save save_one_item <?php ?>"  data-id="<?php echo $dataId ?>" style="color: dodgerblue"></i>
                                         <?php
 //                                        $dataId = ClassRandId2::getRandFromId($objData->getId());
                                         if($linkPublic = $objMeta0->getPublicLink($objData)){
@@ -2283,14 +2723,30 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
 
                                         $valueField0 = $valueField = $objData->$field;
 
+                                        if($field == 'id' && ($objData->ide__ ?? '')){
+                                            $valueField0 = $valueField = $dataId;
+                                        }
 
                                         if($objMeta0->isUseRandId())
                                         if($mRandField && $field !== 'id') //Vi ID da duoc lay o tren
                                         if(in_array($field, $mRandField) && $valueField && is_numeric($valueField)){
                                             //không gán lại ở đây, vì sẽ làm lỗi data = 0
                                             //$objData->$field =
-                                            $valueField = \App\Components\ClassRandId2::getRandFromId($valueField);
 
+                                            if(isDebugIp()){
+                                                if($valueField == -1) {
+//                                                    dump($objData);
+//                                                    die("<br/>\n $objData->id , xValueField =  $valueField");
+                                                }
+                                            }
+
+                                            $valueField = \App\Components\ClassRandId2::getRandFromId($valueField);
+                                            if($objData->hasField('ide__')){
+//                                                if(isDebugIp())
+                                                {
+                                                    $valueField = $objData->ide__;
+                                                }
+                                            }
                                         }
 
 //                                if($field[0] == '_')
@@ -2321,9 +2777,11 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                             if (!$isEdit) {
                                                 $disabledInputAutoCom = " ; display: none; ";
                                                 $disabledInput = 'disabled';
+//                                                $disabledInput = '';
                                                 $readlOnlyInput = 'readonly';
                                                 $bgGray = ' bgSnow ';
                                             }
+
 
                                         $cssRo = '';
                                         if($objMeta->isDevAllowEdit($field))
@@ -2349,7 +2807,7 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                         <div  data-joinfunc='<?php
                                         echo $joinFunc?>' data-id="<?php echo $dataId ?>"
                                               data-selecting-keyboard=""
-                                              data-code-pos="ppp1665495460297" data-multi-value="<?php echo $multiValue ?>"
+                                              data-code-pos="ppp166549597" data-multi-value="<?php echo $multiValue ?>"
                                               class="divTable2Cell divCellDataForTest <?php echo $objMeta->css_cell_class; ?> <?php echo $bgGray; ?>"
                                               data-table-field="<?php echo $field ?>"
                                               data-tablerow="<?php echo $row ?>"
@@ -2364,13 +2822,13 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                                 $padSt = '';
                                                 if($dataId < 0)
                                                     $padSt = 'style=";color: transparent;"';
-                                                echo  "<div $padSt class='id_data'> $dataId </div>";
+                                                echo  "<div $padSt class='id_data' data-code-pos='ppp17359541372841'> $dataId </div>";
                                             }
                                             if($objMeta->isTreeSelect($field)){
                                                 $valShow = $valueField;
                                                 if(isset($valJoin))
                                                     $valShow = $valJoin;
-                                                echo " <span data-code-pos='ppp343dfd1' class='tree_select'> $valShow</span> ";
+                                                echo " <span data-code-pos='ppp343dfd1' class='tree_select $field'> $valShow</span> ";
 
                                                 $displayInput = "; display: none; ";
                                             }elseif($objMeta->isTreeMultiSelect($field)){
@@ -2443,6 +2901,7 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                                     }
                                                 }
 
+
                                                 $displayInput = "; display: none; ";
 
                                                 echo "<div data-join-val='$dataId-$field' data-code-pos='ppp1665495430328' class='search-auto-complete-tbl' style=''>$joinSpan</div>";
@@ -2459,9 +2918,9 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                                     $cls = 'not_editable_status';
                                                 }
                                                 if ($objData->$field)
-                                                    echo "<div title='$field' class='text-center'><i data-code-pos='ppp1681816931570' data-id='$dataId' data-field='$field' class='fa fa-toggle-on $cls'></i></div>";
+                                                    echo "<div title='$field' class='text-center'><i data-code-pos='ppp1681816931570' data-id='$dataId' data-field='$field' class='$field fa fa-toggle-on $cls'></i></div>";
                                                 else
-                                                    echo "<div title='$field' class='text-center'><i data-code-pos='ppp1681816931570' data-id='$dataId' data-field='$field' class='fa fa-toggle-off $cls'></i></div>";
+                                                    echo "<div title='$field' class='text-center'><i data-code-pos='ppp1681816931570' data-id='$dataId' data-field='$field' class='$field fa fa-toggle-off $cls'></i></div>";
                                             }
                                             else
                                                 //if($objMeta->join_func)
@@ -2479,8 +2938,12 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
 //                                                    echo "<pre> >>> " . __FILE__ . "(" . __LINE__ . ")<br/>";
 //                                                    print_r($valJoin);
 //                                                    echo "</pre>";
-                                                            if(is_string($valJoin) || is_numeric($valJoin))
-                                                                $strAfterInput = "<div class='join_val' data-code-pos='ppp16881003038811'>$valJoin</div> " ;
+                                                            if(is_string($valJoin) || is_numeric($valJoin)) {
+                                                                if(!str_contains($valJoin, '<') && !str_contains($valJoin, '>') && !str_contains($valJoin, '/'))
+                                                                    $strAfterInput = "<div class='join_val join_val_text' style='' data-code-pos='08r0990009'>$valJoin</div> ";
+                                                                else
+                                                                    $strAfterInput = "<div class='join_val' data-code-pos='ppp16881003038811'>$valJoin</div> ";
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -2559,6 +3022,11 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
                                                         if ($objMeta->isNumberField($field) || $objMeta->isNumberFieldDb($field))
                                                             $typeText = 'number';
 
+
+
+
+
+
                                                         ?>
                                                     <input
                                                         data-lpignore="true"
@@ -2572,7 +3040,7 @@ data-api-if-have='$apiUrl' data-type-field='".$objMeta->getDataType($field)."' d
 
                                                         data-field='<?php echo $field ?>' type="<?php echo $typeText ?>"
                                                         data-autocomplete-id="<?php echo $dataId . "-$field" ?>"
-                                                        value="<?php if($valueField) echo htmlspecialchars($valueField) ?>"
+                                                        value="<?php if($valueField) echo htmlspecialchars($valueField); else echo $valueField ?>"
                                                         name="<?php echo $field ?>[]"
                                                         title="<?php if($valueField) echo htmlspecialchars($valueField)  . " | " . $objMeta->getFullDescField($field) ?>"
                                                         data-id="<?php echo $dataId ?>"

@@ -11,7 +11,7 @@ defined('_MB') || define('_MB', 1048576);
 defined('_GB') || define('_GB', 1073741824);
 defined('_NSECOND_DAY') || define('_NSECOND_DAY', 86400);
 
-class fslib
+class FileShareLib
 {
     // Class implementation
 

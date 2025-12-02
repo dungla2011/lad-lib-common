@@ -213,14 +213,25 @@ class UrlHelper1
         return null;
     }
 
-    static public function setUrlParamThisUrl($key, $value)
+    static public function setUrlParamThisUrl($key, $value = null)
     {
-        return self::setUrlParam(null, $key, $value);
+        $url = self::getUrlRequestUri();
+        if(is_array($key)){
+            foreach ($key as $k=>$v){
+                $url = self::setUrlParam($url, $k, $v);
+            }
+        }
+        else
+            return self::setUrlParam(null, $key, $value);
+        return $url;
+//        return self::setUrlParam(null, $key, $value);
     }
 
     static public function setUrlParamArray($url = null, $array = null){
         if ($url === null)
             $url = self::getUrlRequestUri();
+        if(!$array)
+            return $url;
 
         $url0 = $url;
         foreach ($array AS $k => $v){

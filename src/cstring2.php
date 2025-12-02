@@ -6,6 +6,13 @@ use App\Components\cstring;
 class cstring2
 {
 
+    static function replaceByArray($string, $replaceArray) {
+        foreach ($replaceArray as $key => $value) {
+            $string = str_replace($key, $value, $string);
+        }
+        return $string;
+    }
+
     static public function toSlugPhp5($string, $getFromCache = 0){
 
         if(!$string)
@@ -655,7 +662,8 @@ Array
         $m1 = [];
         if($mm)
         for($i = 0; $i <= $n; $i++){
-            $m1[] = $mm[$i];
+            if($mm[$i] ?? '')
+                $m1[] = $mm[$i];
         }
         return  $seperator. implode($seperator, $m1).$seperator;
     }

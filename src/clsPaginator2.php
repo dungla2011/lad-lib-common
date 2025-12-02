@@ -78,6 +78,51 @@ class clsPaginator2
     }
 
 
+
+    public static function showPaginatorBasicStyleULLI($uriBase = null, $totalItem = 0, $limitPerPage = 0, $currentPage = 0, $rangeShow = 5, $ulClass='', $liClass='', $liActive = '', $aClass='', $aClassActive = '')
+    {
+
+        if ($totalItem <= 0)
+            return null;
+
+
+        $mm = clsPaginator2::getArrayLinkPaginator($uriBase, $totalItem, $limitPerPage, $currentPage, $rangeShow);
+        $ret = "<ul class='$ulClass'>";
+        foreach ($mm as $k => $link) {
+
+            $show = $k;
+            if ($k == 'first')
+                $show = " « ";
+            if ($k == 'last')
+                $show = " » ";
+            if ($k == 'prev')
+                $show = " ‹ ";
+            if ($k == 'next')
+                $show = " › ";
+            $padClass = '';
+            if ($k == 'current') {
+                $padClass = $aClassActive;
+                $show = " <b>$currentPage</b>";
+            }
+
+            if ($k == 'empty1' || $k == 'empty2')
+                $ret .= " <li class='$liClass dotdotdot'> ... </li> ";
+            else
+                $ret .= " <li class='$liClass'> <a class='$aClass $padClass' style='text-decoration: none' href='$link'>$show</a> </li>";
+        }
+
+        $fromItem = $limitPerPage * ($currentPage - 1) + 1;
+        $toItem = $limitPerPage * ($currentPage);
+        if ($toItem > $totalItem) {
+            $toItem = $totalItem;
+        }
+
+//        $ret .= " <span> Show <b>$fromItem - $toItem </b> of <b>$totalItem</b> </span>";
+
+        $ret .= "</ul>";
+        return $ret;
+    }
+
     //2020
     public static function showPaginatorBasicStyle($uriBase = null, $totalItem = 0, $limitPerPage = 0, $currentPage = 0, $rangeShow = 5)
     {
@@ -92,13 +137,13 @@ class clsPaginator2
 
             $show = $k;
             if ($k == 'first')
-                $show = " <i class='fa fa-caret-left'></i> <i class='fa fa-caret-left'></i>";
+                $show = " << ";
             if ($k == 'last')
-                $show = "<i class='fa fa-caret-right'></i><i class='fa fa-caret-right'></i>";
+                $show = " >> ";
             if ($k == 'prev')
-                $show = "<i class='fa fa-caret-left'> </i> ";
+                $show = " > ";
             if ($k == 'next')
-                $show = " <i class='fa fa-caret-right'></i>";
+                $show = " > ";
             $padClass = '';
             if ($k == 'current') {
                 $padClass = 'pg_selecting';

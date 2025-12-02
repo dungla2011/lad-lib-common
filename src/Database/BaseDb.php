@@ -31,6 +31,9 @@ define("DEF_DATA_TYPE_TREE_MULTI_SELECT", 26);
 define("DEF_DATA_TYPE_IS_MULTI_IMAGE_BROWSE", 27); // Cho phép browse nhiều ảnh gắn ID vào đây cách nhau dấu ,
 //Kiểu này thì trường sẽ là full html, ko phải input nữa
 define("DEF_DATA_TYPE_FULL_HTML", 28);
+define("DEF_DATA_TYPE_HTML_SELECT_OPTION_MULTI_VALUE", 29);
+
+
 
 /**
  * This base class will be inherited in Model class, to CURD data

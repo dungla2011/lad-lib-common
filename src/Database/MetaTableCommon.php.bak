@@ -557,7 +557,7 @@ class MetaTableCommon extends SqlDbBase
 
     public function isShowIndexField($field, $gid = null)
     {
-        $mFieldHide = ['meta_all_set_api', 'table_name_model', 'created_at', 'updated_at', 'translations', 'readOnly', 'limit_user_edit', 'limit_dev_edit'];
+        $mFieldHide = ['meta_all_set_api', 'table_name_model', 'created_at', 'updated_at'];
         if(in_array($field, $mFieldHide)){
             return 0;
         }

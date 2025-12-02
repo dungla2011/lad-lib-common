@@ -403,7 +403,7 @@ class MetaOfTableInDb extends MetaTableCommon
     }
 
 
-    function getMapFieldAndDesc()
+    public function getMapFieldAndDesc()
     {
         if (!$mMeta = $this->getMetaDataApi())
             return [];
